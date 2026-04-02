@@ -1,273 +1,323 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, Lock, Eye, EyeOff, Zap, Briefcase, Star, TrendingUp } from "lucide-react";
-import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { Zap, Mail, Lock, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().email('Invalid email'),
+  password: z.string().min(1, 'Password is required')
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-const stats = [
-  {
-    value: "2,847",
-    label: "Jobs Tracked This Month",
-    icon: Briefcase,
-    delay: "0s",
-  },
-  {
-    value: "94%",
-    label: "User Satisfaction Rate",
-    icon: Star,
-    delay: "0.5s",
-  },
-  {
-    value: "3.2x",
-    label: "Faster Job Search",
-    icon: TrendingUp,
-    delay: "1s",
-  },
-];
-
 export default function LoginPage() {
-  const router = useRouter();
-  const { login, isLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
+  const router = useRouter();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema)
   });
 
-  async function onSubmit(data: LoginForm) {
-    setError("");
+  const onSubmit = async (data: LoginForm) => {
+    setIsLoading(true);
     try {
-      await login(data.email, data.password);
-      toast.success("Welcome back!");
-      router.push("/dashboard");
+      if (login) {
+        await login(data.email, data.password);
+      }
+      toast.success('Welcome back!');
+      router.push('/dashboard');
     } catch (err: any) {
-      setError(err.message);
+      toast.error(err.message || 'Login failed');
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="flex min-h-screen">
-      {/* ── Left Panel ── */}
-      <div
-        className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
+    <div style={{
+      position: 'relative',
+      minHeight: '100vh',
+      background: '#080c14',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+      padding: '40px 20px'
+    }}>
+      {/* Aurora Blobs */}
+      <div style={{
+        position: 'absolute', pointerEvents: 'none', zIndex: 0,
+        top: '-100px', left: '-100px', width: '500px', height: '500px',
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(14,165,233,0.15) 0%, transparent 70%)',
+        filter: 'blur(40px)'
+      }} />
+      <div style={{
+        position: 'absolute', pointerEvents: 'none', zIndex: 0,
+        bottom: '-100px', right: '-100px', width: '450px', height: '450px',
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 70%)',
+        filter: 'blur(50px)'
+      }} />
+      <div style={{
+        position: 'absolute', pointerEvents: 'none', zIndex: 0,
+        top: '40%', right: '-50px', width: '300px', height: '300px',
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(56,189,248,0.1) 0%, transparent 70%)',
+        filter: 'blur(30px)'
+      }} />
+
+      {/* Floating Cards */}
+      <motion.div 
         style={{
-          background:
-            "linear-gradient(135deg, #080c14 0%, #0a1628 50%, #080c14 100%)",
+          position: 'absolute', zIndex: 1, top: '20%', left: '4%',
+          background: 'rgba(13,20,33,0.95)', border: '1px solid rgba(34,197,94,0.3)',
+          borderRadius: '14px', padding: '16px 20px', backdropFilter: 'blur(20px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          minWidth: '220px'
         }}
+        animate={{ y: [0, -10, 0] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       >
-        {/* Grid pattern overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.04]"
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
+          <span style={{ color: '#4ade80', fontWeight: 600, fontSize: '14px' }}>Offer Received!</span>
+        </div>
+        <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>Senior Frontend Dev at Google</div>
+        <div style={{ color: '#e2f0ff', fontSize: '11px', marginTop: '2px' }}>🎉 Congratulations!</div>
+      </motion.div>
+
+      <motion.div 
+        style={{
+          position: 'absolute', zIndex: 1, top: '48%', left: '2%',
+          background: 'rgba(13,20,33,0.95)', border: '1px solid rgba(56,189,248,0.3)',
+          borderRadius: '14px', padding: '14px 18px', backdropFilter: 'blur(20px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          minWidth: '210px'
+        }}
+        animate={{ y: [0, -10, 0] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#38bdf8' }} />
+          <span style={{ color: '#38bdf8', fontWeight: 600, fontSize: '14px' }}>Interview Scheduled</span>
+        </div>
+        <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>Stripe · Tomorrow 2:00 PM</div>
+      </motion.div>
+
+      <motion.div 
+        style={{
+          position: 'absolute', zIndex: 1, top: '72%', left: '4%',
+          background: 'rgba(13,20,33,0.95)', border: '1px solid rgba(14,165,233,0.3)',
+          borderRadius: '14px', padding: '16px 20px', backdropFilter: 'blur(20px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          minWidth: '180px'
+        }}
+        animate={{ y: [0, -10, 0] }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Sparkles size={14} color="#0ea5e9" />
+          <span style={{ color: '#e2f0ff', fontWeight: 500, fontSize: '13px' }}>AI Match Score</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '4px' }}>
+          <span style={{
+            fontSize: '28px', fontWeight: 700,
+            background: 'linear-gradient(135deg,#38bdf8,#2563eb)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+          }}>94</span>
+          <span style={{ color: '#7096b8', fontSize: '11px' }}>/ 100 match score</span>
+        </div>
+      </motion.div>
+
+      {/* Center Column */}
+      <div style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: '420px' }}>
+        
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ display: 'flex', justifyContent: 'center' }}
+        >
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            padding: '6px 16px', borderRadius: '20px',
+            background: 'rgba(14,165,233,0.08)',
+            border: '1px solid rgba(14,165,233,0.2)',
+            color: '#38bdf8', fontSize: '12px',
+            marginBottom: '24px'
+          }}>
+            ✦ AI-Powered Job Tracker
+          </div>
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '8px' }}
+        >
+          <Zap size={24} color="#0ea5e9" />
+          <span style={{
+            fontSize: '28px', fontWeight: 700,
+            background: 'linear-gradient(135deg,#e2f0ff 0%,#38bdf8 40%,#2563eb 100%)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+          }}>HireTrack</span>
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.15 }}
+          style={{ fontSize: '32px', fontWeight: 700, color: '#e2f0ff', textAlign: 'center', marginBottom: '8px' }}
+        >
+          Welcome back
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          style={{ fontSize: '15px', color: '#7096b8', textAlign: 'center', marginBottom: '32px' }}
+        >
+          Sign in to continue your job search
+        </motion.div>
+
+        {/* Form Card */}
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.25 }}
           style={{
-            backgroundImage:
-              "radial-gradient(circle, #fafafa 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
+            background: 'rgba(13,20,33,0.85)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: '20px',
+            padding: '32px',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
+            width: '100%'
           }}
-        />
-
-        <div className="relative z-10">
-          {/* Logo */}
-          <div className="flex items-center gap-3 mb-16">
-            <div className="w-10 h-10 rounded-xl bg-[#0ea5e9] flex items-center justify-center glow-blue">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-2xl font-bold gradient-text">HireTrack</span>
-          </div>
-
-          {/* Tagline */}
-          <h1 className="text-4xl font-bold text-white leading-tight mb-4">
-            Land your dream job,
-            <br />
-            <span className="gradient-text">faster.</span>
-          </h1>
-          <p className="text-zinc-400 text-lg max-w-md">
-            Track applications, ace interviews, and collaborate with mentors —
-            all in one beautiful dashboard.
-          </p>
-        </div>
-
-        {/* Floating stat cards */}
-        <div className="relative z-10 space-y-4">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="glass-blue rounded-xl p-4 flex items-center gap-4 max-w-sm"
-              style={{
-                animation: `float 3s ease-in-out infinite`,
-                animationDelay: stat.delay,
-                borderLeft: "3px solid #0ea5e9",
-              }}
-            >
-              <div className="w-10 h-10 rounded-lg bg-[#0ea5e9]/20 flex items-center justify-center flex-shrink-0">
-                <stat.icon className="w-5 h-5 text-[#38bdf8]" />
-              </div>
-              <div>
-                <p className="text-xl font-bold text-white">{stat.value}</p>
-                <p className="text-sm text-zinc-400">{stat.label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Bottom flair */}
-        <p className="relative z-10 text-xs text-zinc-600">
-          © 2026 HireTrack. All rights reserved.
-        </p>
-      </div>
-
-      {/* ── Right Panel ── */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
-        <div className="w-full max-w-[400px] space-y-8">
-          {/* Mobile logo */}
-          <div className="flex items-center gap-3 lg:hidden mb-8">
-            <div className="w-9 h-9 rounded-xl bg-[#0ea5e9] flex items-center justify-center glow-blue">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-xl font-bold gradient-text">HireTrack</span>
-          </div>
-
-          <div>
-            <h2 className="text-3xl font-bold gradient-text mb-2">
-              Welcome back
-            </h2>
-            <p className="text-zinc-400">Sign in to your account</p>
-          </div>
-
-          {/* Error box */}
-          {error && (
-            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                <Input
-                  id="email"
-                  type="email"
+        >
+          <form onSubmit={handleSubmit(onSubmit)}>
+            
+            {/* Email Field */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 500, color: '#7096b8', display: 'block', marginBottom: '8px' }}>
+                Email
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Mail style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} size={16} color="#3d5a7a" />
+                <input 
+                  type="email" 
                   placeholder="you@example.com"
-                  className="pl-10 h-11 bg-zinc-900 border-zinc-800 focus-visible:border-[#0ea5e9] focus-visible:ring-[#0ea5e9]/20"
-                  {...register("email")}
+                  {...register('email')}
+                  style={{
+                    width: '100%', background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px',
+                    padding: '12px 16px 12px 44px', color: '#e2f0ff', fontSize: '15px',
+                    outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => { e.target.style.borderColor = '#0ea5e9'; e.target.style.boxShadow = '0 0 0 3px rgba(14,165,233,0.1)'; }}
+                  onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
                 />
               </div>
-              {errors.email && (
-                <p className="text-xs text-red-400">{errors.email.message}</p>
-              )}
+              {errors.email && <p style={{ color: '#f87171', fontSize: '12px', marginTop: '4px' }}>{errors.email.message}</p>}
             </div>
 
-            {/* Password */}
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
+            {/* Password Field */}
+            <div style={{ marginBottom: '8px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 500, color: '#7096b8', display: 'block', marginBottom: '8px' }}>
+                Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Lock style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} size={16} color="#3d5a7a" />
+                <input 
+                  type={showPassword ? 'text' : 'password'} 
                   placeholder="••••••••"
-                  className="pl-10 pr-10 h-11 bg-zinc-900 border-zinc-800 focus-visible:border-[#0ea5e9] focus-visible:ring-[#0ea5e9]/20"
-                  {...register("password")}
+                  {...register('password')}
+                  style={{
+                    width: '100%', background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px',
+                    padding: '12px 44px 12px 44px', color: '#e2f0ff', fontSize: '15px',
+                    outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => { e.target.style.borderColor = '#0ea5e9'; e.target.style.boxShadow = '0 0 0 3px rgba(14,165,233,0.1)'; }}
+                  onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
                 />
-                <button
+                <button 
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
-                  tabIndex={-1}
+                  onClick={() => setShowPassword((prev: boolean) => !prev)}
+                  style={{
+                    position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center'
+                  }}
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
+                  {showPassword ? <EyeOff size={16} color="#3d5a7a" /> : <Eye size={16} color="#3d5a7a" />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="text-xs text-red-400">
-                  {errors.password.message}
-                </p>
-              )}
+              {errors.password && <p style={{ color: '#f87171', fontSize: '12px', marginTop: '4px' }}>{errors.password.message}</p>}
             </div>
 
-            {/* Remember me + Forgot */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-[#0ea5e9] focus:ring-[#0ea5e9]/20"
-                />
-                Remember me
-              </label>
-              <button
-                type="button"
-                className="text-sm text-[#38bdf8] hover:text-[#7dd3fc] transition-colors"
-              >
+            <div style={{ textAlign: 'right', marginTop: '8px' }}>
+              <a href="#" style={{ color: '#38bdf8', fontSize: '13px', cursor: 'pointer', textDecoration: 'none' }}>
                 Forgot password?
-              </button>
+              </a>
             </div>
 
-            {/* Submit */}
-            <Button
+            <button
               type="submit"
               disabled={isLoading}
-              className="w-full btn-primary"
+              style={{
+                width: '100%', height: '48px', marginTop: '16px',
+                background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
+                border: 'none', borderRadius: '10px', color: 'white',
+                fontSize: '15px', fontWeight: 600, cursor: isLoading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', gap: '8px',
+                opacity: isLoading ? 0.7 : 1
+              }}
+              onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isLoading) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(14,165,233,0.35)'; } }}
+              onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isLoading) { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; } }}
             >
               {isLoading ? (
-                <span className="flex items-center gap-2">
+                <>
                   <LoadingSpinner size="sm" />
-                  Signing in...
-                </span>
+                  <span>Signing in...</span>
+                </>
               ) : (
                 "Sign In"
               )}
-            </Button>
+            </button>
+            
+            <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+              <span style={{ color: '#3d5a7a', fontSize: '13px' }}>or</span>
+              <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+            </div>
+
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+              <span style={{ color: '#7096b8', fontSize: '14px' }}>Don't have an account? </span>
+              <a href="/register" style={{ color: '#38bdf8', fontWeight: 500, textDecoration: 'none', fontSize: '14px' }}>
+                Create account →
+              </a>
+            </div>
+            
           </form>
+        </motion.div>
 
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-zinc-800" />
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-[#080c14] px-4 text-zinc-500">or</span>
-            </div>
-          </div>
-
-          {/* Link to register */}
-          <p className="text-center text-sm text-zinc-400">
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/register"
-              className="text-[#38bdf8] hover:text-[#7dd3fc] font-medium transition-colors"
-            >
-              Create one
-            </Link>
-          </p>
+        <div style={{ textAlign: 'center', marginTop: '24px', color: '#3d5a7a', fontSize: '12px' }}>
+          Secure · Private · Free
         </div>
+
       </div>
     </div>
   );

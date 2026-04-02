@@ -3,15 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 
 export default function CustomCursor() {
-  const [position, setPosition] = useState({ x: -100, y: -100 });
   const [isVisible, setIsVisible] = useState(false);
   const lastSpawnTime = useRef<number>(0);
-  const cursorDotRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Check if it is a touch device
-    if (window.matchMedia('(pointer: coarse)').matches) {
-      document.body.style.cursor = 'auto';
+    if (typeof window === 'undefined' || window.matchMedia('(pointer: coarse)').matches) {
+      if (typeof document !== 'undefined') document.body.style.cursor = 'auto';
       return;
     }
 
@@ -19,17 +18,26 @@ export default function CustomCursor() {
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!isVisible) setIsVisible(true);
-      setPosition({ x: e.clientX, y: e.clientY });
 
       const now = Date.now();
       if (now - lastSpawnTime.current > 60) {
         spawnSparkle(e.clientX, e.clientY);
         lastSpawnTime.current = now;
       }
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
+        setIsVisible(false);
+      }, 300);
     };
 
     const handleMouseLeave = () => {
       setIsVisible(false);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
 
     const handleMouseEnter = () => {
@@ -45,6 +53,9 @@ export default function CustomCursor() {
       document.removeEventListener('mouseleave', handleMouseLeave);
       document.removeEventListener('mouseenter', handleMouseEnter);
       document.body.style.cursor = 'auto';
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
   }, [isVisible]);
 
@@ -78,24 +89,6 @@ export default function CustomCursor() {
     }, 600);
   };
 
-  if (!isVisible) return null;
-
-  return (
-    <div
-      ref={cursorDotRef}
-      style={{
-        left: position.x,
-        top: position.y,
-        position: 'fixed',
-        width: '10px',
-        height: '10px',
-        background: '#0ea5e9',
-        borderRadius: '50%',
-        boxShadow: '0 0 6px #0ea5e9, 0 0 12px rgba(14,165,233,0.4)',
-        pointerEvents: 'none',
-        zIndex: 99999,
-        transform: 'translate(-50%, -50%)',
-      }}
-    />
-  );
+  // We explicitly removed the static dot return per requirements.
+  return null;
 }
