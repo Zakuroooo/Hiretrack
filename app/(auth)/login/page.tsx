@@ -84,17 +84,17 @@ export default function LoginPage() {
           background: 'rgba(13,20,33,0.95)', border: '1px solid rgba(34,197,94,0.3)',
           borderRadius: '14px', padding: '16px 20px', backdropFilter: 'blur(20px)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          minWidth: '220px'
+          width: 'fit-content', minWidth: '180px', maxWidth: '220px'
         }}
         animate={{ y: [0, -10, 0] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
-          <span style={{ color: '#4ade80', fontWeight: 600, fontSize: '14px' }}>Offer Received!</span>
+          <span style={{ color: '#4ade80', fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>Offer Received!</span>
         </div>
-        <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>Senior Frontend Dev at Google</div>
-        <div style={{ color: '#e2f0ff', fontSize: '11px', marginTop: '2px' }}>🎉 Congratulations!</div>
+        <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px', whiteSpace: 'nowrap' }}>Senior Frontend Dev at Google</div>
+        <div style={{ color: '#e2f0ff', fontSize: '11px', marginTop: '2px', whiteSpace: 'nowrap' }}>🎉 Congratulations!</div>
       </motion.div>
 
       <motion.div 
@@ -103,16 +103,16 @@ export default function LoginPage() {
           background: 'rgba(13,20,33,0.95)', border: '1px solid rgba(56,189,248,0.3)',
           borderRadius: '14px', padding: '14px 18px', backdropFilter: 'blur(20px)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          minWidth: '210px'
+          width: 'fit-content', minWidth: '180px', maxWidth: '220px'
         }}
         animate={{ y: [0, -10, 0] }}
         transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#38bdf8' }} />
-          <span style={{ color: '#38bdf8', fontWeight: 600, fontSize: '14px' }}>Interview Scheduled</span>
+          <span style={{ color: '#38bdf8', fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>Interview Scheduled</span>
         </div>
-        <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>Stripe · Tomorrow 2:00 PM</div>
+        <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px', whiteSpace: 'nowrap' }}>Stripe · Tomorrow 2:00 PM</div>
       </motion.div>
 
       <motion.div 
@@ -121,14 +121,14 @@ export default function LoginPage() {
           background: 'rgba(13,20,33,0.95)', border: '1px solid rgba(14,165,233,0.3)',
           borderRadius: '14px', padding: '16px 20px', backdropFilter: 'blur(20px)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          minWidth: '180px'
+          width: 'fit-content', minWidth: '180px', maxWidth: '220px'
         }}
         animate={{ y: [0, -10, 0] }}
         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Sparkles size={14} color="#0ea5e9" />
-          <span style={{ color: '#e2f0ff', fontWeight: 500, fontSize: '13px' }}>AI Match Score</span>
+          <span style={{ color: '#e2f0ff', fontWeight: 500, fontSize: '13px', whiteSpace: 'nowrap' }}>AI Match Score</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '4px' }}>
           <span style={{
@@ -136,7 +136,7 @@ export default function LoginPage() {
             background: 'linear-gradient(135deg,#38bdf8,#2563eb)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
           }}>94</span>
-          <span style={{ color: '#7096b8', fontSize: '11px' }}>/ 100 match score</span>
+          <span style={{ color: '#7096b8', fontSize: '11px', whiteSpace: 'nowrap' }}>/ 100 match score</span>
         </div>
       </motion.div>
 
@@ -268,9 +268,19 @@ export default function LoginPage() {
             </div>
 
             <div style={{ textAlign: 'right', marginTop: '8px' }}>
-              <a href="#" style={{ color: '#38bdf8', fontSize: '13px', cursor: 'pointer', textDecoration: 'none' }}>
+              <button
+                type="button"
+                onClick={() => toast.info('Password reset coming soon!', {
+                  description: 'This feature will be available shortly.'
+                })}
+                style={{
+                  background: 'none', border: 'none', padding: 0,
+                  color: '#38bdf8', fontSize: '13px', cursor: 'pointer',
+                  textDecoration: 'none', fontFamily: 'inherit'
+                }}
+              >
                 Forgot password?
-              </a>
+              </button>
             </div>
 
             <button
