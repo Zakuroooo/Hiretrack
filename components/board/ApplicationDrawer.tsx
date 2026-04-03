@@ -6,7 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import axios from '@/lib/axios';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const STAGES = ['Applied', 'Screening', 'Interview', 'Offer', 'Rejected'] as const;
@@ -138,25 +143,28 @@ export default function ApplicationDrawer({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent
+    <Sheet open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+      <SheetContent
+        side="right"
         showCloseButton={true}
-        className="fixed inset-y-0 right-0 h-full w-full max-w-none sm:max-w-[540px] border-l outline-none p-0 flex flex-col data-open:animate-in data-closed:animate-out data-open:slide-in-from-right-full data-closed:slide-out-to-right-full duration-300"
         style={{
           background: '#0d1421',
-          borderColor: 'rgba(255,255,255,0.08)',
-          margin: 0,
-          borderRadius: 0,
-          translate: 0,
+          borderLeft: '1px solid rgba(255,255,255,0.08)',
+          width: 'min(540px, 100vw)',
+          padding: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflowY: 'auto',
+          zIndex: 9999,
         }}
       >
         <div style={{ padding: '24px 24px 0' }}>
-          <DialogTitle style={{ color: '#e2f0ff', fontSize: 18, fontWeight: 600 }}>
+          <SheetTitle style={{ color: '#e2f0ff', fontSize: 18, fontWeight: 600 }}>
             {application ? 'Edit Application' : 'Add Application'}
-          </DialogTitle>
-          <DialogDescription style={{ color: '#7096b8', fontSize: 13, marginTop: 4 }}>
+          </SheetTitle>
+          <SheetDescription style={{ color: '#7096b8', fontSize: 13, marginTop: 4 }}>
             Track your job application
-          </DialogDescription>
+          </SheetDescription>
         </div>
 
         <form
@@ -240,7 +248,6 @@ export default function ApplicationDrawer({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <label style={{ fontSize: 13, fontWeight: 500, color: '#7096b8' }}>
                 Applied Date
-
               </label>
               <input
                 type="date"
@@ -424,7 +431,7 @@ export default function ApplicationDrawer({
             </button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -22,11 +22,15 @@ import {
 import { useDroppable } from '@dnd-kit/core';
 import axios from '@/lib/axios';
 import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
+import { Plus, X, Trash2 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
 import ApplicationCard from '@/components/board/ApplicationCard';
-import ApplicationDrawer from '@/components/board/ApplicationDrawer';
 import ApplicationDetailDialog from '@/components/board/ApplicationDetailDialog';
 import PageTransition from '@/components/ui/PageTransition';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 // ── Constants ──
 const STAGES = ['Applied', 'Screening', 'Interview', 'Offer', 'Rejected'] as const;
@@ -91,6 +95,34 @@ function DroppableColumn({
   );
 }
 
+// ── Inline Application Modal Form Schema ──
+const applicationSchema = z.object({
+  company: z.string().min(1, 'Company name is required'),
+  role: z.string().min(1, 'Role is required'),
+  status: z.enum(STAGES),
+  jobUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  salary: z.string().optional(),
+  location: z.string().optional(),
+  notes: z.string().optional(),
+  jobDescription: z.string().optional(),
+  appliedDate: z.string().optional(),
+});
+
+type ApplicationFormData = z.infer<typeof applicationSchema>;
+
+const inputStyle: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: 8,
+  padding: '10px 14px',
+  color: '#e2f0ff',
+  fontSize: 14,
+  width: '100%',
+  fontFamily: 'inherit',
+  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+};
+
+
 // ── Main Page ──
 export default function BoardPage() {
   const queryClient = useQueryClient();
@@ -103,6 +135,12 @@ export default function BoardPage() {
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [drawerDefaultStatus, setDrawerDefaultStatus] = useState('Applied');
+
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    open: boolean;
+    applicationId: string | null;
+    companyName: string;
+  }>({ open: false, applicationId: null, companyName: '' });
 
   // Fetch
   const { data: applications = [], isLoading } = useQuery<Application[]>({
@@ -196,19 +234,106 @@ export default function BoardPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this application?')) return;
+  const handleDelete = (id: string) => {
+    const app = applications.find(a => a._id === id);
+    setDeleteConfirm({
+      open: true,
+      applicationId: id,
+      companyName: app?.company || 'this application'
+    });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.applicationId) return;
     try {
-      await axios.delete(`/applications/${id}`);
+      await axios.delete(`/applications/${deleteConfirm.applicationId}`);
       toast.success('Application deleted');
       queryClient.invalidateQueries({ queryKey: ['applications'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
     } catch {
       toast.error('Failed to delete');
+    } finally {
+      setDeleteConfirm({ open: false, applicationId: null, companyName: '' });
     }
   };
 
   const activeCard = applications.find((a) => a._id === activeId);
+
+  // ── Modal Form Setup ──
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<ApplicationFormData>({
+    resolver: zodResolver(applicationSchema),
+    defaultValues: {
+      company: '',
+      role: '',
+      status: drawerDefaultStatus as ApplicationFormData['status'],
+      jobUrl: '',
+      salary: '',
+      location: '',
+      notes: '',
+      jobDescription: '',
+      appliedDate: '',
+    },
+  });
+
+  useEffect(() => {
+    if (drawerOpen) {
+      if (editApplication) {
+        reset({
+          company: (editApplication.company as string) || '',
+          role: (editApplication.role as string) || '',
+          status: (editApplication.status as ApplicationFormData['status']) || drawerDefaultStatus,
+          jobUrl: (editApplication.jobUrl as string) || '',
+          salary: (editApplication.salary as string) || '',
+          location: (editApplication.location as string) || '',
+          notes: (editApplication.notes as string) || '',
+          jobDescription: (editApplication.jobDescription as string) || '',
+          appliedDate: editApplication.appliedDate
+            ? new Date(editApplication.appliedDate as string).toISOString().split('T')[0]
+            : '',
+        });
+      } else {
+        reset({
+          company: '',
+          role: '',
+          status: drawerDefaultStatus as ApplicationFormData['status'],
+          jobUrl: '',
+          salary: '',
+          location: '',
+          notes: '',
+          jobDescription: '',
+          appliedDate: '',
+        });
+      }
+    }
+  }, [drawerOpen, editApplication, drawerDefaultStatus, reset]);
+
+  const onModalSubmit = async (data: ApplicationFormData) => {
+    setIsSubmitting(true);
+    try {
+      if (editApplication) {
+        await axios.patch(`/applications/${editApplication._id}`, data);
+        toast.success('Application updated!');
+      } else {
+        await axios.post('/applications', data);
+        toast.success('Application added!');
+      }
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      setDrawerOpen(false);
+      setEditApplication(null);
+    } catch {
+      toast.error(editApplication ? 'Failed to update' : 'Failed to add application');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <PageTransition>
@@ -394,6 +519,8 @@ export default function BoardPage() {
                 overflowX: 'auto',
                 paddingBottom: 16,
                 minHeight: 'calc(100vh - 280px)',
+                position: 'relative',
+                zIndex: 1,
               }}
             >
               {STAGES.map((stage) => {
@@ -455,7 +582,8 @@ export default function BoardPage() {
                       </span>
                       <div style={{ flex: 1 }} />
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setEditApplication(null);
                           setDrawerDefaultStatus(stage);
                           setDrawerOpen(true);
@@ -561,20 +689,330 @@ export default function BoardPage() {
           </DndContext>
         )}
 
-        {/* DRAWER */}
-        <ApplicationDrawer
-          open={drawerOpen}
-          onClose={() => {
-            setDrawerOpen(false);
-            setEditApplication(null);
-          }}
-          application={editApplication}
-          defaultStatus={drawerDefaultStatus}
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ['applications'] });
-            queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-          }}
-        />
+        {/* INLINE MODAL */}
+        {drawerOpen && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(0,0,0,0.7)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onClick={() => {
+              setDrawerOpen(false);
+              setEditApplication(null);
+            }}
+          >
+            <div
+              style={{
+                background: '#0d1421',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 16,
+                padding: 32,
+                width: 'min(540px, 90vw)',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                position: 'relative',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => {
+                  setDrawerOpen(false);
+                  setEditApplication(null);
+                }}
+                style={{
+                  position: 'absolute',
+                  top: 20,
+                  right: 20,
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#7096b8',
+                  cursor: 'pointer',
+                  padding: 4,
+                }}
+              >
+                <X size={20} />
+              </button>
+              
+              <h2 style={{ color: '#e2f0ff', fontSize: 18, fontWeight: 600, margin: 0, marginBottom: 4 }}>
+                {editApplication ? 'Edit Application' : 'Add Application'}
+              </h2>
+              <p style={{ color: '#7096b8', fontSize: 13, margin: 0, marginBottom: 24 }}>
+                Track your job application
+              </p>
+
+              <form
+                onSubmit={handleSubmit(onModalSubmit)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 20,
+                }}
+              >
+                {/* Row 1: Company + Role */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <label style={{ fontSize: 13, fontWeight: 500, color: '#7096b8' }}>
+                      Company Name *
+                    </label>
+                    <input
+                      {...register('company')}
+                      placeholder="e.g. Google"
+                      style={inputStyle}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = '#0ea5e9';
+                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(14,165,233,0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    />
+                    {errors.company && (
+                      <span style={{ color: '#f87171', fontSize: 12 }}>
+                        {errors.company.message}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <label style={{ fontSize: 13, fontWeight: 500, color: '#7096b8' }}>
+                      Job Role *
+                    </label>
+                    <input
+                      {...register('role')}
+                      placeholder="e.g. Software Engineer"
+                      style={inputStyle}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = '#0ea5e9';
+                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(14,165,233,0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    />
+                    {errors.role && (
+                      <span style={{ color: '#f87171', fontSize: 12 }}>
+                        {errors.role.message}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Row 2: Status + Date */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <label style={{ fontSize: 13, fontWeight: 500, color: '#7096b8' }}>
+                      Status
+                    </label>
+                    <select
+                      {...register('status')}
+                      style={{ ...inputStyle, cursor: 'pointer' }}
+                    >
+                      {STAGES.map((s) => (
+                        <option key={s} value={s} style={{ background: '#0d1421' }}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <label style={{ fontSize: 13, fontWeight: 500, color: '#7096b8' }}>
+                      Applied Date
+                    </label>
+                    <input
+                      type="date"
+                      {...register('appliedDate')}
+                      style={{ ...inputStyle, colorScheme: 'dark' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Row 3: Job URL */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: 13, fontWeight: 500, color: '#7096b8' }}>
+                    Job URL
+                  </label>
+                  <input
+                    {...register('jobUrl')}
+                    placeholder="https://..."
+                    style={inputStyle}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#0ea5e9';
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(14,165,233,0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                  {errors.jobUrl && (
+                    <span style={{ color: '#f87171', fontSize: 12 }}>
+                      {errors.jobUrl.message}
+                    </span>
+                  )}
+                </div>
+
+                {/* Row 4: Salary + Location */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <label style={{ fontSize: 13, fontWeight: 500, color: '#7096b8' }}>
+                      Salary
+                    </label>
+                    <input
+                      {...register('salary')}
+                      placeholder="e.g. $120,000"
+                      style={inputStyle}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = '#0ea5e9';
+                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(14,165,233,0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <label style={{ fontSize: 13, fontWeight: 500, color: '#7096b8' }}>
+                      Location
+                    </label>
+                    <input
+                      {...register('location')}
+                      placeholder="e.g. San Francisco, CA"
+                      style={inputStyle}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = '#0ea5e9';
+                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(14,165,233,0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Row 5: Job Description */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: 13, fontWeight: 500, color: '#7096b8' }}>
+                    Job Description
+                  </label>
+                  <textarea
+                    {...register('jobDescription')}
+                    rows={4}
+                    placeholder="Paste job description for AI matching later"
+                    style={{ ...inputStyle, resize: 'vertical' }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#0ea5e9';
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(14,165,233,0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+
+                {/* Row 6: Notes */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: 13, fontWeight: 500, color: '#7096b8' }}>
+                    Notes
+                  </label>
+                  <textarea
+                    {...register('notes')}
+                    rows={3}
+                    placeholder="Any additional notes..."
+                    style={{ ...inputStyle, resize: 'vertical' }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#0ea5e9';
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(14,165,233,0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+
+                {/* Footer */}
+                <div
+                  style={{
+                    marginTop: 16,
+                    paddingTop: 16,
+                    borderTop: '1px solid rgba(255,255,255,0.06)',
+                    display: 'flex',
+                    gap: 12,
+                    justifyContent: 'flex-end',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDrawerOpen(false);
+                      setEditApplication(null);
+                    }}
+                    style={{
+                      background: 'transparent',
+                      color: '#7096b8',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: 8,
+                      padding: '10px 20px',
+                      fontSize: 14,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.borderColor =
+                        'rgba(255,255,255,0.15)';
+                      (e.currentTarget as HTMLButtonElement).style.color = '#e2f0ff';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.borderColor =
+                        'rgba(255,255,255,0.08)';
+                      (e.currentTarget as HTMLButtonElement).style.color = '#7096b8';
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    style={{
+                      background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 8,
+                      padding: '10px 24px',
+                      fontSize: 14,
+                      fontWeight: 500,
+                      cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                      opacity: isSubmitting ? 0.6 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {isSubmitting ? (
+                      <LoadingSpinner size="sm" />
+                    ) : editApplication ? (
+                      'Save Changes'
+                    ) : (
+                      'Add Application'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* DETAIL DIALOG */}
         <ApplicationDetailDialog
@@ -587,6 +1025,92 @@ export default function BoardPage() {
             setDrawerOpen(true);
           }}
         />
+        {deleteConfirm.open && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 999999,
+            background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            display: deleteConfirm.open ? 'flex' : 'none',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: deleteConfirm.open ? 'all' : 'none',
+          }}>
+            <div style={{
+              background: '#0d1421',
+              border: '1px solid rgba(239,68,68,0.2)',
+              borderRadius: 16,
+              padding: 32,
+              width: 'min(420px, 90vw)',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.8), 0 0 0 1px rgba(239,68,68,0.1)',
+              position: 'relative',
+              zIndex: 1000000,
+            }}>
+              
+              <div style={{
+                width: 48, height: 48, borderRadius: '50%',
+                background: 'rgba(239,68,68,0.1)',
+                border: '1px solid rgba(239,68,68,0.2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 16px'
+              }}>
+                <Trash2 size={22} color="#ef4444" />
+              </div>
+
+              <h3 style={{
+                fontSize: 18, fontWeight: 700, color: '#e2f0ff',
+                textAlign: 'center', margin: '0 0 8px 0'
+              }}>Delete Application</h3>
+
+              <p style={{
+                fontSize: 14, color: '#7096b8',
+                textAlign: 'center', lineHeight: 1.6,
+                margin: '0 0 24px 0'
+              }}>
+                Are you sure you want to delete the application for <strong style={{color:'#e2f0ff'}}>{deleteConfirm.companyName}</strong>? This action cannot be undone.
+              </p>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  onClick={() => setDeleteConfirm({open:false, applicationId:null, companyName:''})}
+                  style={{
+                    flex: 1,
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 10, padding: 11,
+                    color: '#7096b8', fontSize: 14, fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  style={{
+                    flex: 1,
+                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    border: 'none', borderRadius: 10, padding: 11,
+                    color: 'white', fontSize: 14, fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 15px rgba(239,68,68,0.3)'}
+                  onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </PageTransition>
   );
