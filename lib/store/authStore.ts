@@ -8,6 +8,12 @@ export interface AuthUser {
   name: string;
   email: string;
   avatar?: string;
+  createdAt?: string;
+  notificationPrefs?: {
+    emailOnStatusChange?: boolean;
+    weeklySummary?: boolean;
+    boardInvite?: boolean;
+  };
 }
 
 interface AuthState {

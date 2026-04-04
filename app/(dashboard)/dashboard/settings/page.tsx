@@ -107,12 +107,11 @@ export default function SettingsPage() {
     if (user?.name) {
       resetProfile({ name: user.name })
     }
-    const currentUser = user as any
-    if (currentUser?.notificationPrefs) {
+    if (user?.notificationPrefs) {
       setNotifPrefs({
-        emailOnStatusChange: currentUser.notificationPrefs.emailOnStatusChange ?? true,
-        weeklySummary: currentUser.notificationPrefs.weeklySummary ?? true,
-        boardInvite: currentUser.notificationPrefs.boardInvite ?? true,
+        emailOnStatusChange: user.notificationPrefs.emailOnStatusChange ?? true,
+        weeklySummary: user.notificationPrefs.weeklySummary ?? true,
+        boardInvite: user.notificationPrefs.boardInvite ?? true,
       })
     }
   }, [user, resetProfile])
@@ -261,8 +260,8 @@ export default function SettingsPage() {
               </div>
               <div style={{ fontSize: 12, color: '#4a6080', marginTop: 4 }}>
                 Member since{' '}
-                {(user as any)?.createdAt
-                  ? new Date((user as any).createdAt).toLocaleDateString()
+                {user?.createdAt
+                  ? new Date(user.createdAt).toLocaleDateString()
                   : 'N/A'}
               </div>
             </div>

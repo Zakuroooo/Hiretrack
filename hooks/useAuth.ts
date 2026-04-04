@@ -32,7 +32,7 @@ export function useAuth() {
         const { data } = await api.get("/auth/me");
         const u = data.data;
         setAuth(
-          { id: u.id, name: u.name, email: u.email, avatar: u.avatar },
+          { id: u.id, name: u.name, email: u.email, avatar: u.avatar, createdAt: u.createdAt, notificationPrefs: u.notificationPrefs },
           accessToken
         );
       } catch {
@@ -47,7 +47,7 @@ export function useAuth() {
           });
           const u = meData.data;
           setAuth(
-            { id: u.id, name: u.name, email: u.email, avatar: u.avatar },
+            { id: u.id, name: u.name, email: u.email, avatar: u.avatar, createdAt: u.createdAt, notificationPrefs: u.notificationPrefs },
             newToken
           );
         } catch {
