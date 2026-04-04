@@ -10,11 +10,8 @@ export default function CustomCursor() {
   useEffect(() => {
     // Check if it is a touch device
     if (typeof window === 'undefined' || window.matchMedia('(pointer: coarse)').matches) {
-      if (typeof document !== 'undefined') document.body.style.cursor = 'auto';
       return;
     }
-
-    document.body.style.cursor = 'none';
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!isVisible) setIsVisible(true);
@@ -52,7 +49,6 @@ export default function CustomCursor() {
       window.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseleave', handleMouseLeave);
       document.removeEventListener('mouseenter', handleMouseEnter);
-      document.body.style.cursor = 'auto';
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }

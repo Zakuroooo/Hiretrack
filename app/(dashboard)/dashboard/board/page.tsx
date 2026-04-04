@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useMemo } from 'react';
@@ -24,7 +24,7 @@ import {
 import { useDroppable } from '@dnd-kit/core';
 import axios from '@/lib/axios';
 import { toast } from 'sonner';
-import { Plus, X, Trash2 } from 'lucide-react';
+import { Plus, X, Trash2, Paperclip, CheckCircle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -280,7 +280,9 @@ function BoardPageInner() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingResume, setUploadingResume] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
-  
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const {
     register,
     handleSubmit,
@@ -341,11 +343,11 @@ function BoardPageInner() {
       toast.error('Only PDF files are allowed');
       return;
     }
-    
+
     setUploadingResume(true);
     const formData = new FormData();
     formData.append('file', file);
-    
+
     try {
       const res = await axios.post('/upload/resume', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -359,20 +361,53 @@ function BoardPageInner() {
     }
   };
 
+  const handleFileSelection = (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File too large. Max 5MB');
+      return;
+    }
+    if (!file.type.includes('pdf')) {
+      toast.error('Only PDF files allowed');
+      return;
+    }
+    setResumeFile(file);
+  };
+
   const onModalSubmit = async (data: ApplicationFormData) => {
     setIsSubmitting(true);
     try {
+      let resumeUrl = data.resumeUrl;
+      let resumePublicId: string | undefined;
+
+      if (resumeFile) {
+        setUploadingResume(true);
+        const formData = new FormData();
+        formData.append('file', resumeFile);
+        try {
+          const uploadRes = await axios.post('/upload/resume', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+          resumeUrl = uploadRes.data.data?.url ?? uploadRes.data.url;
+          resumePublicId = uploadRes.data.data?.publicId ?? uploadRes.data.publicId;
+        } finally {
+          setUploadingResume(false);
+        }
+      }
+
+      const payload = { ...data, resumeUrl, ...(resumePublicId ? { resumePublicId } : {}) };
+
       if (editApplication) {
-        await axios.patch(`/applications/${editApplication._id}`, data);
+        await axios.patch(`/applications/${editApplication._id}`, payload);
         toast.success('Application updated!');
       } else {
-        await axios.post('/applications', data);
+        await axios.post('/applications', payload);
         toast.success('Application added!');
       }
       queryClient.invalidateQueries({ queryKey: ['applications'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setDrawerOpen(false);
       setEditApplication(null);
+      setResumeFile(null);
     } catch {
       toast.error(editApplication ? 'Failed to update' : 'Failed to add application');
     } finally {
@@ -723,9 +758,9 @@ function BoardPageInner() {
                 >
                   <ApplicationCard
                     application={activeCard}
-                    onEdit={() => {}}
-                    onDelete={() => {}}
-                    onView={() => {}}
+                    onEdit={() => { }}
+                    onDelete={() => { }}
+                    onView={() => { }}
                     isDragging={true}
                   />
                 </div>
@@ -750,6 +785,7 @@ function BoardPageInner() {
             onClick={() => {
               setDrawerOpen(false);
               setEditApplication(null);
+              setResumeFile(null);
             }}
           >
             <div
@@ -769,6 +805,7 @@ function BoardPageInner() {
                 onClick={() => {
                   setDrawerOpen(false);
                   setEditApplication(null);
+                  setResumeFile(null);
                 }}
                 style={{
                   position: 'absolute',
@@ -783,7 +820,7 @@ function BoardPageInner() {
               >
                 <X size={20} />
               </button>
-              
+
               <h2 style={{ color: '#e2f0ff', fontSize: 18, fontWeight: 600, margin: 0, marginBottom: 4 }}>
                 {editApplication ? 'Edit Application' : 'Add Application'}
               </h2>
@@ -965,62 +1002,61 @@ function BoardPageInner() {
                 </div>
 
                 {/* Row 6: Resume Upload */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={{ fontSize: 13, fontWeight: 500, color: '#7096b8' }}>
-                    Resume (PDF)
+                <div>
+                  <label style={{ fontSize: 13, color: '#7096b8', marginBottom: 8, display: 'block' }}>
+                    Resume (PDF only, max 5MB)
                   </label>
-                  
-                  {watch('resumeUrl') ? (
-                    <div style={{ 
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '12px 16px', background: 'rgba(34,197,94,0.1)', 
-                      border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8 
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#4ade80', fontSize: 13, fontWeight: 500 }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                        Resume Attached
-                      </div>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <a href={watch('resumeUrl')} target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8', fontSize: 12, textDecoration: 'none' }}>View</a>
-                        <button type="button" onClick={() => setValue('resumeUrl', '')} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: 12, cursor: 'pointer', padding: 0 }}>Remove</button>
-                      </div>
+
+                  {editApplication && watch('resumeUrl') && !resumeFile ? (
+                    <div style={{ marginBottom: 12, fontSize: 13, color: '#e2f0ff' }}>
+                      📎 Current resume: <a href={watch('resumeUrl')} target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>View Resume</a> <button type="button" onClick={() => setValue('resumeUrl', '')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 12, marginLeft: 8 }}>Replace</button>
                     </div>
-                  ) : (
+                  ) : null}
+
+                  {(!watch('resumeUrl') || resumeFile) && (
                     <div
-                      onDragOver={(e) => { e.preventDefault(); setIsDraggingFile(true); }}
-                      onDragLeave={() => setIsDraggingFile(false)}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        setIsDraggingFile(false);
-                        const file = e.dataTransfer.files?.[0];
-                        if (file) handleFileUpload(file);
-                      }}
+                      onClick={() => fileInputRef.current?.click()}
                       style={{
-                        ...inputStyle, padding: '24px', textAlign: 'center',
-                        border: isDraggingFile ? '2px dashed #0ea5e9' : '1px dashed rgba(255,255,255,0.2)',
-                        background: isDraggingFile ? 'rgba(14,165,233,0.05)' : 'rgba(255,255,255,0.02)',
-                        cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative'
+                        border: '2px dashed rgba(255,255,255,0.1)',
+                        borderRadius: 10,
+                        padding: 20,
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(14,165,233,0.4)';
+                        e.currentTarget.style.backgroundColor = 'rgba(14,165,233,0.04)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                        e.currentTarget.style.backgroundColor = 'transparent';
                       }}
                     >
-                      <input 
-                        type="file" 
-                        accept="application/pdf" 
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        style={{ display: 'none' }}
+                        ref={fileInputRef}
                         onChange={(e) => {
                           const file = e.target.files?.[0];
-                          if (file) handleFileUpload(file);
+                          if (file) handleFileSelection(file);
                         }}
-                        style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
-                        disabled={uploadingResume}
                       />
-                      {uploadingResume ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                          <LoadingSpinner size="sm" />
-                          <span style={{ fontSize: 13, color: '#7096b8' }}>Uploading...</span>
+
+                      {!resumeFile ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                          <Paperclip size={20} color="#4a6080" />
+                          <div style={{ color: '#7096b8', fontSize: 13 }}>Click to upload resume</div>
+                          <div style={{ color: '#4a6080', fontSize: 11 }}>PDF only, max 5MB</div>
                         </div>
                       ) : (
-                        <div>
-                          <p style={{ margin: '0 0 4px 0', color: '#e2f0ff', fontSize: 14 }}>Drag & drop your resume PDF</p>
-                          <p style={{ margin: 0, color: '#4a6080', fontSize: 12 }}>or click to browse</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                          <CheckCircle size={20} color="#22c55e" />
+                          <div style={{ color: '#e2f0ff', fontSize: 13 }}>
+                            {resumeFile.name.length > 30 ? resumeFile.name.substring(0, 30) + '...' : resumeFile.name}
+                          </div>
+                          <div style={{ color: '#38bdf8', fontSize: 12 }}>Change</div>
                         </div>
                       )}
                     </div>
@@ -1064,6 +1100,7 @@ function BoardPageInner() {
                     onClick={() => {
                       setDrawerOpen(false);
                       setEditApplication(null);
+                      setResumeFile(null);
                     }}
                     style={{
                       background: 'transparent',
@@ -1091,7 +1128,7 @@ function BoardPageInner() {
                   </button>
                   <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || uploadingResume}
                     style={{
                       background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
                       color: 'white',
@@ -1100,21 +1137,16 @@ function BoardPageInner() {
                       padding: '10px 24px',
                       fontSize: 14,
                       fontWeight: 500,
-                      cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                      opacity: isSubmitting ? 0.6 : 1,
+                      cursor: (isSubmitting || uploadingResume) ? 'not-allowed' : 'pointer',
+                      opacity: (isSubmitting || uploadingResume) ? 0.7 : 1,
+                      transition: 'all 0.15s ease',
                       display: 'flex',
                       alignItems: 'center',
                       gap: 8,
-                      transition: 'all 0.15s ease',
                     }}
                   >
-                    {isSubmitting ? (
-                      <LoadingSpinner size="sm" />
-                    ) : editApplication ? (
-                      'Save Changes'
-                    ) : (
-                      'Add Application'
-                    )}
+                    {(isSubmitting || uploadingResume) && <LoadingSpinner size="sm" />}
+                    {uploadingResume ? 'Uploading...' : editApplication ? 'Save Changes' : 'Add Application'}
                   </button>
                 </div>
               </form>
@@ -1159,7 +1191,7 @@ function BoardPageInner() {
               position: 'relative',
               zIndex: 1000000,
             }}>
-              
+
               <div style={{
                 width: 48, height: 48, borderRadius: '50%',
                 background: 'rgba(239,68,68,0.1)',
@@ -1180,12 +1212,12 @@ function BoardPageInner() {
                 textAlign: 'center', lineHeight: 1.6,
                 margin: '0 0 24px 0'
               }}>
-                Are you sure you want to delete the application for <strong style={{color:'#e2f0ff'}}>{deleteConfirm.companyName}</strong>? This action cannot be undone.
+                Are you sure you want to delete the application for <strong style={{ color: '#e2f0ff' }}>{deleteConfirm.companyName}</strong>? This action cannot be undone.
               </p>
 
               <div style={{ display: 'flex', gap: 12 }}>
                 <button
-                  onClick={() => setDeleteConfirm({open:false, applicationId:null, companyName:''})}
+                  onClick={() => setDeleteConfirm({ open: false, applicationId: null, companyName: '' })}
                   style={{
                     flex: 1,
                     background: 'rgba(255,255,255,0.04)',

@@ -8,89 +8,119 @@ import axios from '@/lib/axios'
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { useAuthStore } from '@/lib/store/authStore'
-import { motion } from 'framer-motion'
-import { 
-  User, Lock, Bell, Shield, Save, 
-  Eye, EyeOff, Settings as SettingsIcon 
+import {
+  Settings,
+  User,
+  Lock,
+  Bell,
+  Shield,
+  Save,
+  Eye,
+  EyeOff,
+  Check,
 } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import PageTransition from '@/components/ui/PageTransition'
 import { getInitials } from '@/lib/utils'
 
-const CARD_STYLE = {
-  background: '#0d1421',
-  border: '1px solid rgba(255,255,255,0.06)',
-  borderRadius: 16,
-  padding: '28px',
-}
-
-const INPUT_STYLE = {
-  width: '100%',
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 10,
-  padding: '10px 14px',
-  color: '#e2f0ff',
-  fontSize: 14,
-  outline: 'none',
-}
-
+// ── Schemas ──────────────────────────────────────────────────────────────────
 const profileSchema = z.object({
-  name: z.string().min(2, 'Min 2 chars').max(50)
+  name: z.string().min(2, 'Min 2 chars').max(50),
 })
 
-const passwordSchema = z.object({
-  currentPassword: z.string().min(1, 'Required'),
-  newPassword: z.string().min(6, 'Min 6 chars'),
-  confirmPassword: z.string()
-}).refine(d => d.newPassword === d.confirmPassword, {
-  message: "Passwords don't match",
-  path: ['confirmPassword']
-})
+const passwordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Required'),
+    newPassword: z.string().min(6, 'Min 6 chars'),
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.newPassword === d.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  })
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function getPasswordStrength(password: string): number {
+  if (!password) return 0
+  let score = 0
+  if (password.length >= 6) score++
+  if (password.length >= 8) score++
+  if (/[0-9]/.test(password)) score++
+  if (/[^a-zA-Z0-9]/.test(password)) score++
+  return score
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const { user } = useAuth()
   const { setAuth, accessToken } = useAuthStore()
+
+  // ── Tab state ──
   const [activeTab, setActiveTab] = useState('profile')
-  const [isSaving, setIsSaving] = useState(false)
-  
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
-  const [showNewPassword, setShowNewPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  
+
+  // ── Loading states ──
+  const [isProfileLoading, setIsProfileLoading] = useState(false)
+  const [isPasswordLoading, setIsPasswordLoading] = useState(false)
+
+  // ── Notification prefs ──
   const [notifPrefs, setNotifPrefs] = useState({
     emailOnStatusChange: true,
     weeklySummary: true,
-    boardInvite: true
+    boardInvite: true,
+  })
+  const [savedIndicator, setSavedIndicator] = useState(false)
+
+  // ── Password visibility ──
+  const [showPasswords, setShowPasswords] = useState({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false,
   })
 
-  const profileForm = useForm({
+  // ── Profile form ──
+  const {
+    register: profileRegister,
+    handleSubmit: handleProfileSubmit,
+    formState: { errors: profileErrors },
+    reset: resetProfile,
+  } = useForm({
     resolver: zodResolver(profileSchema),
-    defaultValues: { name: user?.name || '' }
+    defaultValues: { name: user?.name || '' },
   })
 
-  const passwordForm = useForm({
+  // ── Password form ──
+  const {
+    register: passwordRegister,
+    handleSubmit: handlePasswordSubmit,
+    formState: { errors: passwordErrors },
+    watch: passwordWatch,
+    reset: resetPassword,
+  } = useForm({
     resolver: zodResolver(passwordSchema),
-    defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' }
+    defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
   })
 
+  const watchNewPassword = passwordWatch('newPassword')
+
+  // ── Sync user data into form ──
   useEffect(() => {
     if (user?.name) {
-      profileForm.reset({ name: user.name })
+      resetProfile({ name: user.name })
     }
-    const currentUser = user as any;
+    const currentUser = user as any
     if (currentUser?.notificationPrefs) {
       setNotifPrefs({
         emailOnStatusChange: currentUser.notificationPrefs.emailOnStatusChange ?? true,
         weeklySummary: currentUser.notificationPrefs.weeklySummary ?? true,
-        boardInvite: currentUser.notificationPrefs.boardInvite ?? true
+        boardInvite: currentUser.notificationPrefs.boardInvite ?? true,
       })
     }
-  }, [user, profileForm])
+  }, [user, resetProfile])
 
+  // ── Handlers ──────────────────────────────────────────────────────────────
   const onProfileSubmit = async (data: z.infer<typeof profileSchema>) => {
     try {
-      setIsSaving(true)
+      setIsProfileLoading(true)
       const res = await axios.patch('/user/profile', { name: data.name })
       if (res.data.success) {
         toast.success('Profile updated!')
@@ -101,320 +131,545 @@ export default function SettingsPage() {
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to update profile')
     } finally {
-      setIsSaving(false)
+      setIsProfileLoading(false)
     }
   }
 
   const onPasswordSubmit = async (data: z.infer<typeof passwordSchema>) => {
     try {
-      setIsSaving(true)
+      setIsPasswordLoading(true)
       const res = await axios.patch('/user/password', {
         currentPassword: data.currentPassword,
-        newPassword: data.newPassword
+        newPassword: data.newPassword,
       })
       if (res.data.success) {
         toast.success('Password updated successfully')
-        passwordForm.reset()
+        resetPassword()
       }
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to update password')
     } finally {
-      setIsSaving(false)
+      setIsPasswordLoading(false)
     }
   }
 
-  const handleToggle = async (key: keyof typeof notifPrefs) => {
-    const newPrefs = { ...notifPrefs, [key]: !notifPrefs[key] }
-    setNotifPrefs(newPrefs)
-    
+  const toggleNotification = async (key: keyof typeof notifPrefs) => {
+    const updated = { ...notifPrefs, [key]: !notifPrefs[key] }
+    setNotifPrefs(updated)
     try {
-      await axios.patch('/user/profile', { notificationPrefs: newPrefs })
-      toast.success('Preferences saved')
+      await axios.patch('/user/profile', { notificationPrefs: updated })
       if (user && accessToken) {
-        setAuth({ ...user, notificationPrefs: newPrefs } as any, accessToken)
+        setAuth({ ...user, notificationPrefs: updated } as any, accessToken)
       }
-    } catch (err: any) {
+      setSavedIndicator(true)
+      setTimeout(() => setSavedIndicator(false), 2000)
+    } catch {
       toast.error('Failed to save preferences')
-      setNotifPrefs(notifPrefs)
+      setNotifPrefs(notifPrefs) // revert
     }
   }
 
-  // 4 segment strength calculations
-  const newPasswordValue = passwordForm.watch('newPassword') || '';
-  let strengthScore = 0;
-  if (newPasswordValue.length > 0) strengthScore++;
-  if (newPasswordValue.length >= 6) strengthScore++;
-  if (newPasswordValue.length >= 8 && /\d/.test(newPasswordValue)) strengthScore++;
-  if (newPasswordValue.length >= 8 && /[!@#$%^&*(),.?":{}|<>]/.test(newPasswordValue)) strengthScore++;
-
-  const renderStrengthBars = () => {
-    const colors = ['#ef4444', '#f59e0b', '#eab308', '#22c55e'];
-    let color = 'rgba(255,255,255,0.05)';
-    if (strengthScore === 1) color = colors[0];
-    if (strengthScore === 2) color = colors[1];
-    if (strengthScore === 3) color = colors[2];
-    if (strengthScore >= 4) color = colors[3];
-    
-    return (
-      <div className="flex gap-1 mt-2">
-        {[1, 2, 3, 4].map((level) => (
-          <div 
-            key={level} 
-            className="h-1 flex-1 rounded-full transition-all duration-300"
-            style={{ backgroundColor: level <= strengthScore ? color : 'rgba(255,255,255,0.05)' }}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  const TabButton = ({ id, icon: Icon, label }: { id: string, icon: any, label: string }) => (
-    <button 
-      onClick={() => setActiveTab(id)}
-      className="focus:outline-none"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '8px 20px',
-        borderRadius: '8px',
-        fontSize: '14px',
-        fontWeight: 500,
-        cursor: 'pointer',
-        transition: 'all 0.15s ease',
-        background: activeTab === id ? 'rgba(14,165,233,0.1)' : 'transparent',
-        color: activeTab === id ? '#0ea5e9' : '#7096b8',
-        border: activeTab === id ? '1px solid rgba(14,165,233,0.2)' : '1px solid rgba(255,255,255,0.06)',
-      }}
-      onMouseEnter={(e) => {
-        if (activeTab !== id) e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-      }}
-      onMouseLeave={(e) => {
-        if (activeTab !== id) e.currentTarget.style.background = 'transparent';
-      }}
-    >
-      <Icon size={16} /> {label}
-    </button>
-  );
-
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <PageTransition>
-      <div className="max-w-4xl mx-auto p-6 md:p-8">
-        <header className="mb-7">
-          <div className="flex items-center gap-3">
-            <SettingsIcon size={22} color="#0ea5e9" />
-            <div>
-              <h1 className="text-[22px] font-bold text-[#e2f0ff] leading-tight">Settings</h1>
-              <p className="text-[#7096b8] text-sm leading-tight mt-1">Manage your account preferences</p>
-            </div>
-          </div>
-        </header>
+      <div style={{ maxWidth: 720, margin: '0 auto' }}>
 
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-          marginBottom: '24px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          paddingBottom: '16px'
-        }}>
-          <TabButton id="profile" icon={User} label="Profile" />
-          <TabButton id="security" icon={Lock} label="Security" />
-          <TabButton id="notifications" icon={Bell} label="Notifications" />
+        {/* PAGE HEADER */}
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Settings size={22} color="#0ea5e9" />
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#e2f0ff', margin: 0 }}>
+              Settings
+            </h1>
+          </div>
+          <p style={{ fontSize: 14, color: '#7096b8', marginTop: 4 }}>
+            Manage your account preferences
+          </p>
         </div>
 
+        {/* TABS */}
+        <div style={{
+          display: 'flex',
+          gap: 8,
+          marginBottom: 24,
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          paddingBottom: 16,
+        }}>
+          {[
+            { id: 'profile',       label: 'Profile',       Icon: User },
+            { id: 'security',      label: 'Security',      Icon: Lock },
+            { id: 'notifications', label: 'Notifications', Icon: Bell },
+          ].map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 20px',
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 500,
+                cursor: 'pointer',
+                border: activeTab === id
+                  ? '1px solid rgba(14,165,233,0.3)'
+                  : '1px solid rgba(255,255,255,0.06)',
+                background: activeTab === id
+                  ? 'rgba(14,165,233,0.1)'
+                  : 'transparent',
+                color: activeTab === id ? '#0ea5e9' : '#7096b8',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Icon size={15} />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── PROFILE TAB ── */}
         {activeTab === 'profile' && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={CARD_STYLE}>
-            <div className="flex flex-col items-center mb-8">
-              <div className="w-[80px] h-[80px] rounded-full flex items-center justify-center text-white text-[28px] font-bold bg-gradient-to-br from-[#0ea5e9] to-[#2563eb] mb-4">
+          <div style={{
+            background: '#0d1421',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 16,
+            padding: 32,
+          }}>
+            {/* Avatar */}
+            <div style={{ textAlign: 'center', marginBottom: 32 }}>
+              <div style={{
+                width: 80,
+                height: 80,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg,#0ea5e9,#2563eb)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 28,
+                fontWeight: 700,
+                color: 'white',
+                margin: '0 auto 12px',
+              }}>
                 {getInitials(user?.name || 'U')}
               </div>
-              <h2 className="text-[18px] font-semibold text-[#e2f0ff]">{user?.name}</h2>
-              <p className="text-[14px] text-[#7096b8] mt-1">{user?.email}</p>
-              <p className="text-[12px] text-[#4a6080] mt-1">
-                Member since {new Date((user as any)?.createdAt || Date.now()).toLocaleDateString()}
-              </p>
+              <div style={{ fontSize: 18, fontWeight: 600, color: '#e2f0ff' }}>
+                {user?.name}
+              </div>
+              <div style={{ fontSize: 14, color: '#7096b8', marginTop: 2 }}>
+                {user?.email}
+              </div>
+              <div style={{ fontSize: 12, color: '#4a6080', marginTop: 4 }}>
+                Member since{' '}
+                {(user as any)?.createdAt
+                  ? new Date((user as any).createdAt).toLocaleDateString()
+                  : 'N/A'}
+              </div>
             </div>
 
-            <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-5 max-w-md mx-auto">
-              <div>
-                <label className="block text-[#7096b8] text-xs font-medium mb-1.5">Full Name</label>
-                <input 
-                  type="text" 
-                  style={INPUT_STYLE}
-                  {...profileForm.register('name')} 
+            {/* Form */}
+            <form onSubmit={handleProfileSubmit(onProfileSubmit)}>
+
+              {/* Full Name */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: '#7096b8',
+                  marginBottom: 8,
+                }}>
+                  Full Name
+                </label>
+                <input
+                  {...profileRegister('name')}
+                  placeholder="Your full name"
+                  style={{
+                    width: '100%',
+                    padding: '11px 14px',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 10,
+                    color: '#e2f0ff',
+                    fontSize: 14,
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#0ea5e9'
+                    e.target.style.boxShadow = '0 0 0 3px rgba(14,165,233,0.1)'
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255,255,255,0.08)'
+                    e.target.style.boxShadow = 'none'
+                  }}
                 />
-                {profileForm.formState.errors.name && (
-                  <p className="text-red-500 text-xs mt-1">{profileForm.formState.errors.name.message as string}</p>
+                {profileErrors.name && (
+                  <p style={{ color: '#f87171', fontSize: 12, marginTop: 4 }}>
+                    {profileErrors.name.message as string}
+                  </p>
                 )}
               </div>
-              
-              <div>
-                <label className="block text-[#7096b8] text-xs font-medium mb-1.5">Email</label>
-                <div className="relative">
-                  <input 
-                    type="email" 
-                    style={{...INPUT_STYLE, color: '#4a6080', cursor: 'not-allowed', paddingLeft: '36px'}}
-                    value={user?.email || ''} 
-                    readOnly 
+
+              {/* Email (read-only) */}
+              <div style={{ marginBottom: 28 }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: '#7096b8',
+                  marginBottom: 8,
+                }}>
+                  Email Address
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    value={user?.email || ''}
+                    readOnly
+                    style={{
+                      width: '100%',
+                      padding: '11px 40px 11px 14px',
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px solid rgba(255,255,255,0.05)',
+                      borderRadius: 10,
+                      color: '#4a6080',
+                      fontSize: 14,
+                      outline: 'none',
+                      cursor: 'not-allowed',
+                      boxSizing: 'border-box',
+                    }}
                   />
-                  <Lock size={14} className="absolute left-3 top-3.5 text-[#4a6080]" />
+                  <Lock
+                    size={14}
+                    color="#3d5a7a"
+                    style={{
+                      position: 'absolute',
+                      right: 14,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                    }}
+                  />
                 </div>
-                <p className="text-[#4a6080] text-[11px] mt-1.5">Contact support to change email</p>
+                <p style={{ fontSize: 12, color: '#3d5a7a', marginTop: 6 }}>
+                  Contact support to change your email address
+                </p>
               </div>
 
-              <div className="flex justify-end pt-2">
-                <button 
-                  type="submit" 
-                  disabled={isSaving}
-                  className="bg-gradient-to-r from-[#0ea5e9] to-[#2563eb] hover:opacity-90 text-white rounded-lg px-6 py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-opacity"
+              {/* Save button */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="submit"
+                  disabled={isProfileLoading}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '10px 28px',
+                    background: 'linear-gradient(135deg,#0ea5e9,#2563eb)',
+                    border: 'none',
+                    borderRadius: 10,
+                    color: 'white',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: isProfileLoading ? 'not-allowed' : 'pointer',
+                    opacity: isProfileLoading ? 0.7 : 1,
+                    transition: 'all 0.2s ease',
+                  }}
                 >
-                  {isSaving ? <LoadingSpinner size="sm" /> : <Save size={16} />} 
-                  Save Changes
+                  {isProfileLoading
+                    ? <><LoadingSpinner size="sm" /> Saving...</>
+                    : <><Save size={15} /> Save Changes</>
+                  }
                 </button>
               </div>
             </form>
-          </motion.div>
+          </div>
         )}
 
+        {/* ── SECURITY TAB ── */}
         {activeTab === 'security' && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <div style={CARD_STYLE}>
-              <div className="flex items-center gap-2 mb-6">
-                <Lock size={16} className="text-[#0ea5e9]" />
-                <h2 className="text-[16px] font-semibold text-[#e2f0ff]">Change Password</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* Change Password Card */}
+            <div style={{
+              background: '#0d1421',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: 16,
+              padding: 32,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+                <Lock size={18} color="#0ea5e9" />
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: '#e2f0ff', margin: 0 }}>
+                  Change Password
+                </h2>
               </div>
 
-              <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4 max-w-md">
-                <div>
-                  <label className="block text-[#7096b8] text-xs font-medium mb-1.5">Current Password</label>
-                  <div className="relative">
-                    <input 
-                      type={showCurrentPassword ? "text" : "password"} 
-                      style={{...INPUT_STYLE, paddingRight: '36px'}}
-                      {...passwordForm.register('currentPassword')} 
-                    />
-                    <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-3 top-2.5 text-[#7096b8]">
-                      {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
+              <form onSubmit={handlePasswordSubmit(onPasswordSubmit)}>
+                {(
+                  [
+                    ['currentPassword', 'Current Password'],
+                    ['newPassword',     'New Password'],
+                    ['confirmPassword', 'Confirm New Password'],
+                  ] as const
+                ).map(([field, label], idx) => (
+                  <div key={field} style={{ marginBottom: idx === 2 ? 24 : 20 }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: '#7096b8',
+                      marginBottom: 8,
+                    }}>
+                      {label}
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        {...passwordRegister(field)}
+                        type={showPasswords[field] ? 'text' : 'password'}
+                        placeholder={label}
+                        style={{
+                          width: '100%',
+                          padding: '11px 44px 11px 14px',
+                          background: 'rgba(255,255,255,0.04)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: 10,
+                          color: '#e2f0ff',
+                          fontSize: 14,
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.borderColor = '#0ea5e9'
+                          e.target.style.boxShadow = '0 0 0 3px rgba(14,165,233,0.1)'
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = 'rgba(255,255,255,0.08)'
+                          e.target.style.boxShadow = 'none'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowPasswords((p) => ({ ...p, [field]: !p[field] }))
+                        }
+                        style={{
+                          position: 'absolute',
+                          right: 12,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: 4,
+                          color: '#4a6080',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {showPasswords[field] ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+
+                    {passwordErrors[field] && (
+                      <p style={{ color: '#f87171', fontSize: 12, marginTop: 4 }}>
+                        {passwordErrors[field]?.message as string}
+                      </p>
+                    )}
+
+                    {/* Strength bar — only for newPassword */}
+                    {field === 'newPassword' && watchNewPassword && (
+                      <div style={{ marginTop: 8 }}>
+                        <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+                          {[1, 2, 3, 4].map((i) => {
+                            const strength = getPasswordStrength(watchNewPassword)
+                            const colors = ['#ef4444', '#f59e0b', '#eab308', '#22c55e']
+                            return (
+                              <div
+                                key={i}
+                                style={{
+                                  flex: 1,
+                                  height: 4,
+                                  borderRadius: 2,
+                                  background:
+                                    i <= strength
+                                      ? colors[strength - 1]
+                                      : 'rgba(255,255,255,0.08)',
+                                  transition: 'background 0.2s ease',
+                                }}
+                              />
+                            )
+                          })}
+                        </div>
+                        <p style={{ fontSize: 11, color: '#7096b8' }}>
+                          {['', 'Weak', 'Fair', 'Good', 'Strong'][
+                            getPasswordStrength(watchNewPassword)
+                          ]}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  {passwordForm.formState.errors.currentPassword && <p className="text-red-500 text-xs mt-1">{passwordForm.formState.errors.currentPassword.message as string}</p>}
-                </div>
+                ))}
 
-                <div>
-                  <label className="block text-[#7096b8] text-xs font-medium mb-1.5">New Password</label>
-                  <div className="relative">
-                    <input 
-                      type={showNewPassword ? "text" : "password"} 
-                      style={{...INPUT_STYLE, paddingRight: '36px'}}
-                      {...passwordForm.register('newPassword')} 
-                    />
-                    <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-2.5 text-[#7096b8]">
-                      {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  
-                  {renderStrengthBars()}
-
-                  {passwordForm.formState.errors.newPassword && <p className="text-red-500 text-xs mt-1">{passwordForm.formState.errors.newPassword.message as string}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-[#7096b8] text-xs font-medium mb-1.5">Confirm Password</label>
-                  <div className="relative">
-                    <input 
-                      type={showConfirmPassword ? "text" : "password"} 
-                      style={{...INPUT_STYLE, paddingRight: '36px'}}
-                      {...passwordForm.register('confirmPassword')} 
-                    />
-                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-2.5 text-[#7096b8]">
-                      {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  {passwordForm.formState.errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{passwordForm.formState.errors.confirmPassword.message as string}</p>}
-                </div>
-
-                <div className="flex justify-end pt-2">
-                  <button 
-                    type="submit" 
-                    disabled={isSaving}
-                    className="bg-gradient-to-r from-[#0ea5e9] to-[#2563eb] hover:opacity-90 text-white rounded-lg px-6 py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-opacity"
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    type="submit"
+                    disabled={isPasswordLoading}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '10px 28px',
+                      background: 'linear-gradient(135deg,#0ea5e9,#2563eb)',
+                      border: 'none',
+                      borderRadius: 10,
+                      color: 'white',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: isPasswordLoading ? 'not-allowed' : 'pointer',
+                      opacity: isPasswordLoading ? 0.7 : 1,
+                    }}
                   >
-                    {isSaving ? <LoadingSpinner size="sm" /> : <Save size={16} />} 
-                    Update Password
+                    {isPasswordLoading
+                      ? <><LoadingSpinner size="sm" /> Updating...</>
+                      : <><Check size={15} /> Update Password</>
+                    }
                   </button>
                 </div>
               </form>
             </div>
 
+            {/* Security Info Card */}
             <div style={{
               background: 'rgba(34,197,94,0.05)',
               border: '1px solid rgba(34,197,94,0.15)',
-              borderRadius: '12px',
-              padding: '16px',
-            }} className="flex gap-3">
-              <Shield size={20} className="text-green-500 shrink-0" />
+              borderRadius: 12,
+              padding: 20,
+              display: 'flex',
+              gap: 14,
+              alignItems: 'flex-start',
+            }}>
+              <div style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                flexShrink: 0,
+                background: 'rgba(34,197,94,0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Shield size={20} color="#22c55e" />
+              </div>
               <div>
-                <p className="text-[#e2f0ff] text-[13px] font-medium mb-1">Your account is secured with bcrypt hashing</p>
-                <p className="text-[#7096b8] text-[12px]">Sessions expire after 7 days automatically for your protection.</p>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#4ade80', marginBottom: 4 }}>
+                  Account Secured
+                </div>
+                <div style={{ fontSize: 13, color: '#7096b8', lineHeight: 1.5 }}>
+                  Your password is hashed with bcrypt (12 rounds).
+                  Sessions expire after 7 days for your protection.
+                </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
 
+        {/* ── NOTIFICATIONS TAB ── */}
         {activeTab === 'notifications' && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={CARD_STYLE}>
-            <div className="space-y-0 w-full max-w-xl">
-              
-              {[
-                { key: 'emailOnStatusChange' as const, title: 'Email on Status Change', desc: 'Get notified when application status changes' },
-                { key: 'weeklySummary' as const, title: 'Weekly Summary', desc: 'Receive weekly digest of your job search' },
-                { key: 'boardInvite' as const, title: 'Board Invites', desc: 'Get notified when invited to a board' },
-              ].map((item, idx) => {
-                const isOn = notifPrefs[item.key];
-                return (
-                  <div key={item.key} style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '16px 0',
-                    borderBottom: idx === 2 ? 'none' : '1px solid rgba(255,255,255,0.04)'
-                  }}>
-                    <div>
-                      <h3 className="text-[13px] font-semibold text-[#e2f0ff]">{item.title}</h3>
-                      <p className="text-[12px] text-[#7096b8] mt-0.5">{item.desc}</p>
-                    </div>
-                    <div 
-                      onClick={() => handleToggle(item.key)}
-                      style={{
-                        width: '44px',
-                        height: '24px',
-                        borderRadius: '12px',
-                        background: isOn ? '#0ea5e9' : 'rgba(255,255,255,0.1)',
-                        transition: 'background 0.2s ease',
-                        cursor: 'pointer',
-                        position: 'relative'
-                      }}
-                    >
-                      <div 
-                        style={{
-                          position: 'absolute',
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '50%',
-                          background: 'white',
-                          top: '3px',
-                          left: isOn ? '23px' : '3px',
-                          transition: 'left 0.2s ease'
-                        }}
-                      />
-                    </div>
-                  </div>
-                )
-              })}
-              
+          <div style={{
+            background: '#0d1421',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 16,
+            padding: 32,
+          }}>
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#e2f0ff', marginBottom: 24 }}>
+              Email Notifications
             </div>
-          </motion.div>
+
+            {[
+              {
+                key: 'emailOnStatusChange',
+                title: 'Application Status Change',
+                desc: 'Get an email when your application status updates',
+              },
+              {
+                key: 'weeklySummary',
+                title: 'Weekly Summary',
+                desc: 'Receive a weekly digest of your job search progress',
+              },
+              {
+                key: 'boardInvite',
+                title: 'Board Invites',
+                desc: 'Get notified when someone invites you to a board',
+              },
+            ].map(({ key, title, desc }, idx, arr) => (
+              <div
+                key={key}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '18px 0',
+                  borderBottom:
+                    idx < arr.length - 1
+                      ? '1px solid rgba(255,255,255,0.05)'
+                      : 'none',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: '#e2f0ff', marginBottom: 3 }}>
+                    {title}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#7096b8' }}>{desc}</div>
+                </div>
+
+                {/* Toggle switch */}
+                <div
+                  onClick={() => toggleNotification(key as keyof typeof notifPrefs)}
+                  style={{
+                    width: 44,
+                    height: 24,
+                    borderRadius: 12,
+                    background: notifPrefs[key as keyof typeof notifPrefs]
+                      ? '#0ea5e9'
+                      : 'rgba(255,255,255,0.1)',
+                    position: 'relative',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s ease',
+                    flexShrink: 0,
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      width: 18,
+                      height: 18,
+                      borderRadius: '50%',
+                      background: 'white',
+                      top: 3,
+                      left: notifPrefs[key as keyof typeof notifPrefs] ? 23 : 3,
+                      transition: 'left 0.2s ease',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+
+            {savedIndicator && (
+              <div style={{
+                marginTop: 16,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                color: '#4ade80',
+                fontSize: 13,
+              }}>
+                <Check size={14} /> Preferences saved
+              </div>
+            )}
+          </div>
         )}
+
       </div>
     </PageTransition>
   )
