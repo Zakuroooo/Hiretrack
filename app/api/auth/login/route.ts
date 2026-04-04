@@ -11,6 +11,7 @@ const loginSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  console.log('ENV CHECK:', !!process.env.MONGODB_URI)
   try {
     const body = await request.json();
 

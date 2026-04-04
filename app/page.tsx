@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import AnimatedCounter from '@/components/ui/AnimatedCounter';
 import { useAuthStore } from '@/lib/store/authStore';
+import { toast } from 'sonner';
 
 /* ─── Shared animation variant ─────────────────────────────────── */
 const fadeUp = {
@@ -862,24 +863,42 @@ export default function LandingPage() {
             padding: '40px 48px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <Zap size={16} color="#0ea5e9" />
-            <span style={{ color: '#7096b8', fontSize: '14px', fontWeight: 600 }}>HireTrack</span>
-            <span style={{ color: '#3d5a7a', fontSize: '13px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Zap size={16} color="#0ea5e9" />
+              <span style={{ color: '#7096b8', fontSize: '14px', fontWeight: 600 }}>HireTrack</span>
+            </div>
+            <div style={{ color: '#3d5a7a', fontSize: '12px', marginTop: '4px' }}>
               © 2026 HireTrack. All rights reserved.
-            </span>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: '24px' }}>
-            {['Privacy', 'Terms', 'GitHub'].map(link => (
-              <span
-                key={link}
-                style={{ color: '#3d5a7a', fontSize: '13px', cursor: 'pointer', transition: 'color 0.2s' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#7096b8')}
-                onMouseLeave={e => (e.currentTarget.style.color = '#3d5a7a')}
-              >
-                {link}
-              </span>
-            ))}
+            <span
+              onClick={() => toast.info('Privacy policy coming soon')}
+              style={{ color: '#3d5a7a', fontSize: '13px', cursor: 'pointer', transition: 'color 0.2s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#7096b8')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#3d5a7a')}
+            >
+              Privacy
+            </span>
+            <span
+              onClick={() => toast.info('Terms of service coming soon')}
+              style={{ color: '#3d5a7a', fontSize: '13px', cursor: 'pointer', transition: 'color 0.2s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#7096b8')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#3d5a7a')}
+            >
+              Terms
+            </span>
+            <a
+              href="https://github.com/Zakuroooo/Hiretrack"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#3d5a7a', fontSize: '13px', textDecoration: 'none', transition: 'color 0.2s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#7096b8')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#3d5a7a')}
+            >
+              GitHub →
+            </a>
           </div>
         </footer>
       </section>

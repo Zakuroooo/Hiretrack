@@ -114,6 +114,30 @@ export default function DashboardLayout({
           >
             <PageTransition>{children}</PageTransition>
           </main>
+          <footer style={{
+            borderTop: '1px solid rgba(255,255,255,0.04)',
+            padding: '12px 24px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 8,
+          }}>
+            <span style={{ fontSize: 12, color: '#3d5a7a' }}>
+              © 2026 HireTrack. All rights reserved.
+            </span>
+            <span style={{ fontSize: 12, color: '#3d5a7a' }}>
+              Built by{' '}
+              <a 
+                href="https://github.com/Zakuroooo" 
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#4a6080', textDecoration: 'none' }}
+              >
+                Pranay Sarkar
+              </a>
+            </span>
+          </footer>
         </div>
       </div>
     </AuthGuard>
