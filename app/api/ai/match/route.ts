@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
         await Application.findByIdAndUpdate(applicationId, {
           aiMatchScore: result.score,
           aiMatchFeedback: result.summary,
+          aiMatchData: result,
         });
       }
     }

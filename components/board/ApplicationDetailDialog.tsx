@@ -14,7 +14,11 @@ import {
   ExternalLink,
   Sparkles,
   Paperclip,
+  CheckCircle2,
+  XCircle,
+  Lightbulb,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 
 const STAGE_COLORS: Record<string, string> = {
@@ -40,6 +44,16 @@ const GRADIENT_COLORS = [
   'linear-gradient(135deg, #f59e0b, #d97706)',
 ];
 
+interface AiMatchData {
+  score: number;
+  summary: string;
+  strengths: string[];
+  gaps: string[];
+  keywords: { matched: string[]; missing: string[] };
+  recommendation: string;
+  interviewReadiness: string;
+}
+
 interface ApplicationDetailDialogProps {
   open: boolean;
   onClose: () => void;
@@ -54,6 +68,7 @@ export default function ApplicationDetailDialog({
   onEdit,
 }: ApplicationDetailDialogProps) {
   const [showFullDesc, setShowFullDesc] = useState(false);
+  const router = useRouter();
 
   if (!application) return null;
 
@@ -69,17 +84,50 @@ export default function ApplicationDetailDialog({
   const appliedDate = application.appliedDate as string | undefined;
   const createdAt = application.createdAt as string;
   const resumeUrl = application.resumeUrl as string | undefined;
+  
+  const aiMatchData = application.aiMatchData as AiMatchData | undefined;
 
   const gradientIdx = company.charCodeAt(0) % GRADIENT_COLORS.length;
 
   const scoreColor =
     aiMatchScore !== undefined
       ? aiMatchScore > 75
-        ? { bg: 'rgba(34,197,94,0.1)', text: '#4ade80', label: 'Strong Match' }
+        ? { bg: 'rgba(34,197,94,0.1)', arc: '#4ade80', text: '#4ade80', label: 'Strong Match' }
         : aiMatchScore >= 50
-        ? { bg: 'rgba(245,158,11,0.1)', text: '#fbbf24', label: 'Moderate Match' }
-        : { bg: 'rgba(239,68,68,0.1)', text: '#f87171', label: 'Low Match' }
+        ? { bg: 'rgba(245,158,11,0.1)', arc: '#fbbf24', text: '#fbbf24', label: 'Moderate Match' }
+        : { bg: 'rgba(239,68,68,0.1)', arc: '#f87171', text: '#f87171', label: 'Low Match' }
       : null;
+
+  const getReadinessStyle = (level: string) => {
+    switch (level) {
+      case 'Low':
+        return {
+          background: 'rgba(239,68,68,0.1)',
+          color: '#f87171',
+          border: '1px solid rgba(239,68,68,0.2)',
+        };
+      case 'Medium':
+        return {
+          background: 'rgba(245,158,11,0.1)',
+          color: '#fbbf24',
+          border: '1px solid rgba(245,158,11,0.2)',
+        };
+      case 'High':
+        return {
+          background: 'rgba(34,197,94,0.1)',
+          color: '#4ade80',
+          border: '1px solid rgba(34,197,94,0.2)',
+        };
+      default:
+        return {
+          background: 'rgba(255,255,255,0.05)',
+          color: '#7096b8',
+          border: '1px solid rgba(255,255,255,0.08)',
+        };
+    }
+  };
+
+  const circumference = 2 * Math.PI * 40;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -336,28 +384,126 @@ export default function ApplicationDetailDialog({
               style={{
                 gridColumn: '1 / -1',
                 background: scoreColor.bg,
-                borderRadius: 12,
-                padding: 16,
+                borderRadius: 16,
+                padding: 20,
               }}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  marginBottom: 8,
-                }}
-              >
-                <Sparkles size={16} style={{ color: scoreColor.text }} />
-                <span
-                  style={{ fontSize: 14, fontWeight: 600, color: scoreColor.text }}
-                >
-                  AI Match Score: {aiMatchScore}/100
-                </span>
-              </div>
-              <span style={{ fontSize: 13, color: '#7096b8' }}>
-                {scoreColor.label}
-              </span>
+              {aiMatchData ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  {/* Top Header: Circular Score + Summary */}
+                  <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+                    
+                    <div style={{ position: 'relative', width: 90, height: 90, flexShrink: 0 }}>
+                      <svg width="90" height="90" viewBox="0 0 90 90">
+                        <circle cx="45" cy="45" r="40" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+                        <circle
+                          cx="45"
+                          cy="45"
+                          r="40"
+                          fill="none"
+                          stroke={scoreColor.arc}
+                          strokeWidth="6"
+                          strokeLinecap="round"
+                          strokeDasharray={circumference}
+                          strokeDashoffset={circumference * (1 - aiMatchData.score / 100)}
+                          transform="rotate(-90 45 45)"
+                        />
+                      </svg>
+                      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 24, fontWeight: 700, color: '#e2f0ff', lineHeight: 1 }}>{aiMatchData.score}</span>
+                        <span style={{ fontSize: 10, color: '#7096b8' }}>/100</span>
+                      </div>
+                    </div>
+
+                    <div style={{ flex: '1 1 min-content' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        <Sparkles size={16} style={{ color: scoreColor.text }} />
+                        <span style={{ fontSize: 14, fontWeight: 600, color: scoreColor.text }}>AI Analysis</span>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            padding: '2px 8px',
+                            borderRadius: 12,
+                            fontSize: 10,
+                            fontWeight: 600,
+                            ...getReadinessStyle(aiMatchData.interviewReadiness),
+                          }}
+                        >
+                          {aiMatchData.interviewReadiness}
+                        </span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 13, color: '#c8deff', fontStyle: 'italic', lineHeight: 1.5 }}>
+                        &ldquo;{aiMatchData.summary}&rdquo;
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Body: Strengths & Gaps */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                        <CheckCircle2 size={14} color="#4ade80" />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#4ade80' }}>Strengths</span>
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#c8deff', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {aiMatchData.strengths.map((str: string, i: number) => (
+                          <li key={i}>{str}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                        <XCircle size={14} color="#f87171" />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#f87171' }}>Gaps</span>
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#c8deff', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {aiMatchData.gaps.map((gap: string, i: number) => (
+                          <li key={i}>{gap}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Footer: Recommendation */}
+                  <div style={{ display: 'flex', gap: 10, background: 'rgba(255,255,255,0.03)', borderLeft: '3px solid #0ea5e9', padding: 12, borderRadius: '0 8px 8px 0' }}>
+                    <Lightbulb size={16} color="#0ea5e9" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <span style={{ fontSize: 13, color: '#e2f0ff', lineHeight: 1.5 }}>
+                      {aiMatchData.recommendation}
+                    </span>
+                  </div>
+
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Sparkles size={16} style={{ color: scoreColor.text }} />
+                    <span style={{ fontSize: 16, fontWeight: 600, color: scoreColor.text }}>
+                      AI Match Score: {aiMatchScore}/100
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 13, color: '#7096b8' }}>
+                    Run full AI Match to see analysis
+                  </span>
+                  <button
+                    onClick={() => {
+                      onClose()
+                      router.push(`/dashboard/ai-match?appId=${application._id}`)
+                    }}
+                    style={{
+                      background: 'rgba(14,165,233,0.1)',
+                      color: '#38bdf8',
+                      border: '1px solid rgba(14,165,233,0.2)',
+                      padding: '8px 16px',
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Go to AI Match
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

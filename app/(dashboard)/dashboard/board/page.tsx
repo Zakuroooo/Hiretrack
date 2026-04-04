@@ -1011,9 +1011,7 @@ function BoardPageInner() {
                     <div style={{ marginBottom: 12, fontSize: 13, color: '#e2f0ff' }}>
                       📎 Current resume: <a href={watch('resumeUrl')} target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>View Resume</a> <button type="button" onClick={() => setValue('resumeUrl', '')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 12, marginLeft: 8 }}>Replace</button>
                     </div>
-                  ) : null}
-
-                  {(!watch('resumeUrl') || resumeFile) && (
+                  ) : (
                     <div
                       onClick={() => fileInputRef.current?.click()}
                       style={{
@@ -1146,7 +1144,7 @@ function BoardPageInner() {
                     }}
                   >
                     {(isSubmitting || uploadingResume) && <LoadingSpinner size="sm" />}
-                    {uploadingResume ? 'Uploading...' : editApplication ? 'Save Changes' : 'Add Application'}
+                    {uploadingResume ? 'Uploading resume...' : isSubmitting ? (editApplication ? 'Saving changes...' : 'Adding application...') : editApplication ? 'Save Changes' : 'Add Application'}
                   </button>
                 </div>
               </form>

@@ -23,6 +23,18 @@ export interface IApplication extends Document {
   resumePublicId?: string;
   aiMatchScore?: number;
   aiMatchFeedback?: string;
+  aiMatchData?: {
+    score: number;
+    summary: string;
+    strengths: string[];
+    gaps: string[];
+    keywords: {
+      matched: string[];
+      missing: string[];
+    };
+    recommendation: string;
+    interviewReadiness: string;
+  };
   appliedDate: Date;
   order: number;
   createdAt: Date;
@@ -75,6 +87,18 @@ const applicationSchema = new Schema<IApplication>(
       max: [100, "Score cannot exceed 100"],
     },
     aiMatchFeedback: { type: String },
+    aiMatchData: {
+      score: Number,
+      summary: String,
+      strengths: [String],
+      gaps: [String],
+      keywords: {
+        matched: [String],
+        missing: [String]
+      },
+      recommendation: String,
+      interviewReadiness: String
+    },
     appliedDate: { type: Date, default: Date.now },
     order: { type: Number, default: 0 },
   },

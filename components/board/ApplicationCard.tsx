@@ -194,6 +194,15 @@ export default function ApplicationCard({
                 <span style={{ color: '#e2f0ff', fontSize: 13 }}>Open Job</span>
               </DropdownMenuItem>
             )}
+            {application.resumeUrl && (
+              <DropdownMenuItem
+                onClick={() => window.open(application.resumeUrl, '_blank')}
+                style={{ cursor: 'pointer', gap: 8, padding: '6px 10px' }}
+              >
+                <Paperclip size={14} style={{ color: '#7096b8' }} />
+                <span style={{ color: '#e2f0ff', fontSize: 13 }}>Open Resume</span>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator style={{ background: 'rgba(255,255,255,0.06)' }} />
             <DropdownMenuItem
               onClick={() => onDelete(application._id)}
@@ -276,7 +285,11 @@ export default function ApplicationCard({
           }}
         >
           {application.resumeUrl && (
-            <span
+            <a
+              href={application.resumeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onPointerDown={(e) => e.stopPropagation()}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -287,10 +300,12 @@ export default function ApplicationCard({
                 padding: '2px 8px',
                 borderRadius: 20,
                 border: '1px solid rgba(14,165,233,0.2)',
+                textDecoration: 'none',
+                cursor: 'pointer',
               }}
             >
               <Paperclip size={11} /> Resume
-            </span>
+            </a>
           )}
           {application.aiMatchScore !== undefined && scoreColor && (
             <span

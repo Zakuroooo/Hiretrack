@@ -32,6 +32,9 @@ interface SimpleApplication {
   _id: string;
   company: string;
   role: string;
+  jobDescription?: string;
+  resumeUrl?: string;
+  aiMatchData?: AnalysisResult;
 }
 
 interface HistoryEntry {
@@ -99,6 +102,24 @@ export default function AIMatchPage() {
       // ignore parse errors
     }
   }, []);
+
+  const handleSelectApplication = (appId: string) => {
+    setSelectedApplicationId(appId);
+    if (!appId) return;
+
+    const app = applications?.find(a => a._id === appId);
+    if (app) {
+      if (app.jobDescription && !jobDescription) {
+        setJobDescription(app.jobDescription);
+        toast.success("Job description loaded from application");
+      }
+      if (app.aiMatchData) {
+        setResult(app.aiMatchData);
+      }
+    }
+  };
+
+  const selectedApp = applications?.find(a => a._id === selectedApplicationId);
 
   const isValid = jobDescription.length >= 50 && resumeText.length >= 100;
 
@@ -357,6 +378,17 @@ export default function AIMatchPage() {
                     'rgba(255,255,255,0.08)')
                 }
               />
+              {selectedApp && selectedApp.resumeUrl && (
+                <div style={{ marginTop: 12, padding: 12, background: 'rgba(14,165,233,0.05)', border: '1px solid rgba(14,165,233,0.1)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Briefcase size={14} color="#0ea5e9" />
+                  <span style={{ fontSize: 13, color: '#e2f0ff' }}>
+                    Your resume is on file for {selectedApp.company}.
+                  </span>
+                </div>
+              )}
+              <div style={{ marginTop: 8, fontSize: 12, color: '#4a6080' }}>
+                Tip: Open your saved resume PDF and copy-paste the text here. The AI needs the text content, not the file.
+              </div>
             </div>
 
             {/* Link to Application */}
@@ -374,9 +406,7 @@ export default function AIMatchPage() {
               </label>
               <select
                 value={selectedApplicationId}
-                onChange={(e) =>
-                  setSelectedApplicationId(e.target.value)
-                }
+                onChange={(e) => handleSelectApplication(e.target.value)}
                 style={{
                   background: 'rgba(255,255,255,0.03)',
                   border: '1px solid rgba(255,255,255,0.08)',
