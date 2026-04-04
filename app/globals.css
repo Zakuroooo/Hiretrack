@@ -54,7 +54,6 @@ body {
   background: #080c14;
   color: #e2f0ff;
   font-family: 'Geist', 'Inter', sans-serif;
-  cursor: none;
   overflow-x: hidden;
 }
 
@@ -137,7 +136,7 @@ body {
   padding: 10px 24px;
   font-weight: 500;
   font-size: 14px;
-  cursor: none;
+  cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
@@ -160,7 +159,7 @@ body {
   padding: 10px 24px;
   font-weight: 500;
   font-size: 14px;
-  cursor: none;
+  cursor: pointer;
   transition: all 0.2s ease;
 }
 
@@ -177,7 +176,7 @@ body {
   padding: 10px 24px;
   font-weight: 500;
   font-size: 14px;
-  cursor: none;
+  cursor: pointer;
   transition: all 0.2s ease;
 }
 
