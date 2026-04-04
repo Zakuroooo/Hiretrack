@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from '@/lib/axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,6 +12,9 @@ import {
   XCircle,
   Lightbulb,
   Trash2,
+  Upload,
+  X,
+  Paperclip,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -79,6 +82,9 @@ export default function AIMatchPage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [isExtractingPdf, setIsExtractingPdf] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState('');
+  const resumePdfRef = useRef<HTMLInputElement>(null);
 
   // Fetch applications for dropdown
   const { data: applications } = useQuery<SimpleApplication[]>({
@@ -102,6 +108,51 @@ export default function AIMatchPage() {
       // ignore parse errors
     }
   }, []);
+
+  const extractTextFromPdf = async (file: File) => {
+    setIsExtractingPdf(true);
+    setUploadedFileName(file.name);
+
+    try {
+      const pdfjsLib = await import('pdfjs-dist');
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+      let fullText = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((item: any) => ('str' in item ? item.str : ''))
+          .join(' ');
+        fullText += pageText + '\n';
+      }
+
+      const cleaned = fullText
+        .replace(/\s+/g, ' ')
+        .replace(/\n\s*\n/g, '\n')
+        .trim();
+
+      if (cleaned.length < 50) {
+        toast.error('Could not extract text from PDF. Please paste manually.');
+        setUploadedFileName('');
+        return;
+      }
+
+      setResumeText(cleaned);
+      toast.success('Resume text extracted successfully!');
+    } catch (error) {
+      console.error('PDF extraction error:', error);
+      toast.error('Failed to extract PDF text. Please paste your resume manually.');
+      setUploadedFileName('');
+    } finally {
+      setIsExtractingPdf(false);
+    }
+  };
 
   const handleSelectApplication = (appId: string) => {
     setSelectedApplicationId(appId);
@@ -324,71 +375,238 @@ export default function AIMatchPage() {
               />
             </div>
 
-            {/* Resume Text */}
-            <div style={{ marginBottom: 20 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 8,
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <FileText size={14} style={{ color: '#0ea5e9' }} />
-                  <label
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 500,
-                      color: '#7096b8',
-                    }}
-                  >
+            {/* Resume Section */}
+            <div style={{ marginBottom: 16 }}>
+
+              {/* Label row */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 8,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <FileText size={14} color="#0ea5e9" />
+                  <span style={{ fontSize: 13, fontWeight: 500, color: '#7096b8' }}>
                     Your Resume
-                  </label>
+                  </span>
                 </div>
-                <span
-                  style={{
-                    fontSize: 12,
-                    color:
-                      resumeText.length >= 100
-                        ? '#22c55e'
-                        : '#f59e0b',
-                    fontWeight: 500,
-                  }}
-                >
+                <span style={{
+                  fontSize: 12,
+                  color: resumeText.length >= 100 ? '#22c55e' : '#f59e0b',
+                }}>
                   {resumeText.length}/100 min
                 </span>
               </div>
+
+              {/* PDF Upload Button */}
+              <div style={{ marginBottom: 10 }}>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  ref={resumePdfRef}
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (file.size > 5 * 1024 * 1024) {
+                        toast.error('File too large. Max 5MB');
+                        return;
+                      }
+                      extractTextFromPdf(file);
+                    }
+                    e.target.value = '';
+                  }}
+                />
+
+                {/* Upload area */}
+                <div
+                  onClick={() => !isExtractingPdf && resumePdfRef.current?.click()}
+                  style={{
+                    border: uploadedFileName
+                      ? '1px solid rgba(34,197,94,0.3)'
+                      : '2px dashed rgba(255,255,255,0.1)',
+                    borderRadius: 10,
+                    padding: '12px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    cursor: isExtractingPdf ? 'not-allowed' : 'pointer',
+                    background: uploadedFileName
+                      ? 'rgba(34,197,94,0.05)'
+                      : 'rgba(255,255,255,0.02)',
+                    transition: 'all 0.2s ease',
+                    marginBottom: 10,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isExtractingPdf && !uploadedFileName) {
+                      (e.currentTarget as HTMLDivElement).style.borderColor =
+                        'rgba(14,165,233,0.4)';
+                      (e.currentTarget as HTMLDivElement).style.background =
+                        'rgba(14,165,233,0.04)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!uploadedFileName) {
+                      (e.currentTarget as HTMLDivElement).style.borderColor =
+                        'rgba(255,255,255,0.1)';
+                      (e.currentTarget as HTMLDivElement).style.background =
+                        'rgba(255,255,255,0.02)';
+                    }
+                  }}
+                >
+                  {isExtractingPdf ? (
+                    <>
+                      <div style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: '50%',
+                        border: '2px solid rgba(14,165,233,0.2)',
+                        borderTop: '2px solid #0ea5e9',
+                        animation: 'spin 0.8s linear infinite',
+                        flexShrink: 0,
+                      }} />
+                      <span style={{ fontSize: 13, color: '#7096b8' }}>
+                        Extracting text from PDF...
+                      </span>
+                    </>
+                  ) : uploadedFileName ? (
+                    <>
+                      <div style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 8,
+                        flexShrink: 0,
+                        background: 'rgba(34,197,94,0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <FileText size={16} color="#22c55e" />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: '#4ade80' }}>
+                          ✓ Resume extracted
+                        </div>
+                        <div style={{
+                          fontSize: 11,
+                          color: '#7096b8',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {uploadedFileName}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUploadedFileName('');
+                          setResumeText('');
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: 4,
+                          color: '#4a6080',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 8,
+                        flexShrink: 0,
+                        background: 'rgba(14,165,233,0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Upload size={16} color="#0ea5e9" />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: '#e2f0ff' }}>
+                          Upload Resume PDF
+                        </div>
+                        <div style={{ fontSize: 11, color: '#7096b8', marginTop: 2 }}>
+                          PDF only · max 5MB · text extracted automatically
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                marginBottom: 10,
+              }}>
+                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                <span style={{ fontSize: 11, color: '#3d5a7a' }}>or paste manually</span>
+                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+              </div>
+
+              {/* Manual textarea */}
               <textarea
                 value={resumeText}
-                onChange={(e) => setResumeText(e.target.value)}
-                placeholder="Copy and paste your resume text here..."
-                style={textareaStyle}
-                onFocus={(e) =>
-                  (e.currentTarget.style.borderColor = '#0ea5e9')
-                }
-                onBlur={(e) =>
-                  (e.currentTarget.style.borderColor =
-                    'rgba(255,255,255,0.08)')
-                }
+                onChange={(e) => {
+                  setResumeText(e.target.value);
+                  if (e.target.value && uploadedFileName) {
+                    setUploadedFileName('');
+                  }
+                }}
+                placeholder="Or copy and paste your resume text here..."
+                style={{
+                  width: '100%',
+                  minHeight: 140,
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 10,
+                  padding: 14,
+                  color: '#e2f0ff',
+                  fontSize: 14,
+                  lineHeight: 1.6,
+                  resize: 'vertical',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  fontFamily: 'inherit',
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#0ea5e9';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(14,165,233,0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255,255,255,0.08)';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
+
               {selectedApp && selectedApp.resumeUrl && (
-                <div style={{ marginTop: 12, padding: 12, background: 'rgba(14,165,233,0.05)', border: '1px solid rgba(14,165,233,0.1)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Briefcase size={14} color="#0ea5e9" />
-                  <span style={{ fontSize: 13, color: '#e2f0ff' }}>
-                    Your resume is on file for {selectedApp.company}.
+                <div style={{ marginTop: 10, padding: 10, background: 'rgba(14,165,233,0.05)', border: '1px solid rgba(14,165,233,0.1)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Paperclip size={13} color="#0ea5e9" />
+                  <span style={{ fontSize: 12, color: '#7096b8' }}>
+                    Resume on file for {selectedApp.company} —
                   </span>
+                  <a
+                    href={selectedApp.resumeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: 12, color: '#38bdf8', textDecoration: 'none' }}
+                  >
+                    View
+                  </a>
                 </div>
               )}
-              <div style={{ marginTop: 8, fontSize: 12, color: '#4a6080' }}>
-                Tip: Open your saved resume PDF and copy-paste the text here. The AI needs the text content, not the file.
-              </div>
             </div>
 
             {/* Link to Application */}
