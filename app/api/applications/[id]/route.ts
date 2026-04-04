@@ -2,8 +2,11 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import connectDB from "@/lib/mongodb";
 import Application from "@/models/Application";
+import Notification from "@/models/Notification";
+import User from "@/models/User";
 import { getAuthUser } from "@/lib/auth";
 import { successResponse, errorResponse } from "@/lib/response";
+import { sendStatusChangeEmail } from "@/lib/email";
 
 // ── GET — Single application ──
 export async function GET(
@@ -76,10 +79,27 @@ export async function PATCH(
       updateData.appliedDate = new Date(parsed.data.appliedDate);
     }
 
+    const isStatusChanged = updateData.status && updateData.status !== application.status;
+
     const updated = await Application.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true,
     }).lean();
+    
+    if (isStatusChanged && updated) {
+      await Notification.create({
+        userId: user._id,
+        type: 'status_change',
+        title: 'Application Updated',
+        message: `Your application to ${updated.company} moved to ${updated.status}`,
+        relatedApplication: updated._id
+      });
+      
+      const dbUser = await User.findById(user._id);
+      if (dbUser && dbUser.notificationPrefs?.emailOnStatusChange) {
+        await sendStatusChangeEmail(dbUser.email, dbUser.name, updated.company, updated.role, updated.status as string);
+      }
+    }
 
     return successResponse(updated);
   } catch (error) {

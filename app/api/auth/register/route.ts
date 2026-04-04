@@ -5,6 +5,7 @@ import User from "@/models/User";
 import Board from "@/models/Board";
 import { generateAccessToken, generateRefreshToken } from "@/lib/jwt";
 import { successResponse, errorResponse } from "@/lib/response";
+import { sendWelcomeEmail } from "@/lib/email";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(50, "Name cannot exceed 50 characters"),
@@ -73,6 +74,9 @@ export async function POST(request: NextRequest) {
       maxAge: 7 * 24 * 60 * 60,
       path: "/",
     });
+    
+    // Fire and forget welcome email
+    sendWelcomeEmail(user.email, user.name);
 
     return response;
   } catch (error) {

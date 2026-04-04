@@ -2,11 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Bell, Search, Menu } from 'lucide-react';
+import { Bell, Search, Menu, X } from 'lucide-react';
 import { LogOut, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getInitials } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import NotificationBell from './NotificationBell';
 
 interface HeaderProps {
   sidebarCollapsed: boolean;
@@ -35,6 +37,9 @@ export default function Header({
 
   const currentPageTitle = PAGE_TITLES[pathname] || 'Dashboard';
   const userInitials = getInitials(user?.name || 'User');
+  
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -128,85 +133,88 @@ export default function Header({
           gap: '8px',
         }}
       >
-        {/* Search button */}
+        {/* Search Input inline */}
+        <AnimatePresence>
+          {searchOpen && (
+            <motion.div
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: '240px' }}
+              exit={{ opacity: 0, width: 0 }}
+              style={{ overflow: 'hidden' }}
+            >
+              <input
+                autoFocus
+                type="text"
+                placeholder="Search applications..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (searchQuery.trim()) {
+                      router.push(`/dashboard/board?search=${encodeURIComponent(searchQuery)}`);
+                      setSearchOpen(false);
+                    }
+                  } else if (e.key === 'Escape') {
+                    setSearchOpen(false);
+                  }
+                }}
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(14,165,233,0.3)',
+                  borderRadius: '8px',
+                  padding: '6px 14px',
+                  color: '#e2f0ff',
+                  fontSize: '14px',
+                  width: '240px',
+                  outline: 'none',
+                }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Search button toggle */}
         <button
-          onClick={() => toast.info('Search coming soon!')}
+          onClick={() => {
+            if (searchOpen && searchQuery.trim()) {
+              router.push(`/dashboard/board?search=${encodeURIComponent(searchQuery)}`);
+              setSearchOpen(false);
+            } else {
+              setSearchOpen(!searchOpen);
+            }
+          }}
           style={{
             width: '36px',
             height: '36px',
             borderRadius: '8px',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: searchOpen ? 'rgba(14,165,233,0.1)' : 'rgba(255,255,255,0.04)',
+            border: searchOpen ? '1px solid rgba(14,165,233,0.3)' : '1px solid rgba(255,255,255,0.06)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            color: '#4a6080',
+            color: searchOpen ? '#0ea5e9' : '#4a6080',
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-            e.currentTarget.style.color = '#7096b8';
+            if (!searchOpen) {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+              e.currentTarget.style.color = '#7096b8';
+            }
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-            e.currentTarget.style.color = '#4a6080';
+            if (!searchOpen) {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+              e.currentTarget.style.color = '#4a6080';
+            }
           }}
-          title="Search"
+          title={searchOpen ? "Close Search" : "Search"}
         >
-          <Search size={16} />
+          {searchOpen ? <X size={16} /> : <Search size={16} />}
         </button>
 
         {/* Notification bell */}
-        <button
-          onClick={() => toast.info('Notifications coming soon!')}
-          style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '8px',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            color: '#4a6080',
-            position: 'relative',
-            transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-            e.currentTarget.style.color = '#7096b8';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-            e.currentTarget.style.color = '#4a6080';
-          }}
-          title="Notifications"
-        >
-          <Bell size={16} />
-          {/* Unread badge */}
-          <span
-            style={{
-              position: 'absolute',
-              top: '-4px',
-              right: '-4px',
-              width: '16px',
-              height: '16px',
-              borderRadius: '50%',
-              background: '#0ea5e9',
-              fontSize: '9px',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 600,
-              border: '2px solid #080c14',
-            }}
-          >
-            3
-          </span>
-        </button>
+        <NotificationBell />
 
         {/* Divider */}
         <div

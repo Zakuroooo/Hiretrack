@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useMemo } from 'react';
 import {
   DndContext,
   closestCorners,
@@ -106,6 +108,7 @@ const applicationSchema = z.object({
   notes: z.string().optional(),
   jobDescription: z.string().optional(),
   appliedDate: z.string().optional(),
+  resumeUrl: z.string().optional(),
 });
 
 type ApplicationFormData = z.infer<typeof applicationSchema>;
@@ -124,8 +127,11 @@ const inputStyle: React.CSSProperties = {
 
 
 // ── Main Page ──
-export default function BoardPage() {
+function BoardPageInner() {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get('search') || '';
+  const appQuery = searchParams.get('app') || '';
 
   // State
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -143,12 +149,23 @@ export default function BoardPage() {
   }>({ open: false, applicationId: null, companyName: '' });
 
   // Fetch
-  const { data: applications = [], isLoading } = useQuery<Application[]>({
+  const { data: rawApplications = [], isLoading } = useQuery<Application[]>({
     queryKey: ['applications'],
     queryFn: () =>
       axios.get('/applications?limit=100').then((r) => r.data.data.applications),
     staleTime: 30000,
   });
+
+  const applications = useMemo(() => {
+    return rawApplications.filter((a) => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!a.company.toLowerCase().includes(q) && !a.role.toLowerCase().includes(q)) return false;
+      }
+      if (appQuery && a._id !== appQuery) return false;
+      return true;
+    });
+  }, [rawApplications, searchQuery, appQuery]);
 
   // Group by status
   const grouped = STAGES.reduce<Record<string, Application[]>>((acc, stage) => {
@@ -261,11 +278,15 @@ export default function BoardPage() {
 
   // ── Modal Form Setup ──
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
   
   const {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<ApplicationFormData>({
     resolver: zodResolver(applicationSchema),
@@ -309,10 +330,34 @@ export default function BoardPage() {
           notes: '',
           jobDescription: '',
           appliedDate: '',
+          resumeUrl: '',
         });
       }
     }
   }, [drawerOpen, editApplication, drawerDefaultStatus, reset]);
+
+  const handleFileUpload = async (file: File) => {
+    if (file.type !== 'application/pdf') {
+      toast.error('Only PDF files are allowed');
+      return;
+    }
+    
+    setUploadingResume(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const res = await axios.post('/upload/resume', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setValue('resumeUrl', res.data.data.url);
+      toast.success('Resume uploaded successfully');
+    } catch {
+      toast.error('Failed to upload resume');
+    } finally {
+      setUploadingResume(false);
+    }
+  };
 
   const onModalSubmit = async (data: ApplicationFormData) => {
     setIsSubmitting(true);
@@ -919,7 +964,70 @@ export default function BoardPage() {
                   />
                 </div>
 
-                {/* Row 6: Notes */}
+                {/* Row 6: Resume Upload */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: 13, fontWeight: 500, color: '#7096b8' }}>
+                    Resume (PDF)
+                  </label>
+                  
+                  {watch('resumeUrl') ? (
+                    <div style={{ 
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '12px 16px', background: 'rgba(34,197,94,0.1)', 
+                      border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8 
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#4ade80', fontSize: 13, fontWeight: 500 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                        Resume Attached
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <a href={watch('resumeUrl')} target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8', fontSize: 12, textDecoration: 'none' }}>View</a>
+                        <button type="button" onClick={() => setValue('resumeUrl', '')} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: 12, cursor: 'pointer', padding: 0 }}>Remove</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); setIsDraggingFile(true); }}
+                      onDragLeave={() => setIsDraggingFile(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDraggingFile(false);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) handleFileUpload(file);
+                      }}
+                      style={{
+                        ...inputStyle, padding: '24px', textAlign: 'center',
+                        border: isDraggingFile ? '2px dashed #0ea5e9' : '1px dashed rgba(255,255,255,0.2)',
+                        background: isDraggingFile ? 'rgba(14,165,233,0.05)' : 'rgba(255,255,255,0.02)',
+                        cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative'
+                      }}
+                    >
+                      <input 
+                        type="file" 
+                        accept="application/pdf" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload(file);
+                        }}
+                        style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
+                        disabled={uploadingResume}
+                      />
+                      {uploadingResume ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                          <LoadingSpinner size="sm" />
+                          <span style={{ fontSize: 13, color: '#7096b8' }}>Uploading...</span>
+                        </div>
+                      ) : (
+                        <div>
+                          <p style={{ margin: '0 0 4px 0', color: '#e2f0ff', fontSize: 14 }}>Drag & drop your resume PDF</p>
+                          <p style={{ margin: 0, color: '#4a6080', fontSize: 12 }}>or click to browse</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Row 7: Notes */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <label style={{ fontSize: 13, fontWeight: 500, color: '#7096b8' }}>
                     Notes
@@ -1113,5 +1221,13 @@ export default function BoardPage() {
         )}
       </div>
     </PageTransition>
+  );
+}
+
+export default function BoardPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, display: 'flex', justifyContent: 'center' }}><LoadingSpinner /></div>}>
+      <BoardPageInner />
+    </Suspense>
   );
 }

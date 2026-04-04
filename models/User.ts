@@ -12,6 +12,8 @@ export interface IUser extends Document {
     weeklySummary: boolean;
     boardInvite: boolean;
   };
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidate: string): Promise<boolean>;
@@ -49,6 +51,8 @@ const userSchema = new Schema<IUser, IUserModel>(
       weeklySummary: { type: Boolean, default: true },
       boardInvite: { type: Boolean, default: true },
     },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
   },
   { timestamps: true }
 );

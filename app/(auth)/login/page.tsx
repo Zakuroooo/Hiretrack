@@ -270,9 +270,7 @@ export default function LoginPage() {
             <div style={{ textAlign: 'right', marginTop: '8px' }}>
               <button
                 type="button"
-                onClick={() => toast.info('Password reset coming soon!', {
-                  description: 'This feature will be available shortly.'
-                })}
+                onClick={() => router.push('/forgot-password')}
                 style={{
                   background: 'none', border: 'none', padding: 0,
                   color: '#38bdf8', fontSize: '13px', cursor: 'pointer',

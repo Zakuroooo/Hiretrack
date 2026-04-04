@@ -10,8 +10,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { useAuthStore } from '@/lib/store/authStore'
 import { motion } from 'framer-motion'
 import { 
-  User, Lock, Bell, Trash2, Shield, Save, 
-  Eye, EyeOff, Check, Settings as SettingsIcon 
+  User, Lock, Bell, Shield, Save, 
+  Eye, EyeOff, Settings as SettingsIcon 
 } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import PageTransition from '@/components/ui/PageTransition'
@@ -21,7 +21,7 @@ const CARD_STYLE = {
   background: '#0d1421',
   border: '1px solid rgba(255,255,255,0.06)',
   borderRadius: 16,
-  padding: '24px',
+  padding: '28px',
 }
 
 const INPUT_STYLE = {
@@ -53,9 +53,11 @@ export default function SettingsPage() {
   const { setAuth, accessToken } = useAuthStore()
   const [activeTab, setActiveTab] = useState('profile')
   const [isSaving, setIsSaving] = useState(false)
+  
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  
   const [notifPrefs, setNotifPrefs] = useState({
     emailOnStatusChange: true,
     weeklySummary: true,
@@ -137,22 +139,68 @@ export default function SettingsPage() {
     }
   }
 
-  const getPasswordStrengthColor = (pwd: string) => {
-    if (pwd.length < 6) return '#ef4444'
-    if (pwd.length < 8) return '#f59e0b'
-    const hasNumber = /\d/.test(pwd)
-    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(pwd)
-    if (pwd.length >= 8 && hasNumber && hasSpecial) return '#22c55e'
-    if (pwd.length >= 8 && hasNumber) return '#eab308'
-    return '#f59e0b'
+  // 4 segment strength calculations
+  const newPasswordValue = passwordForm.watch('newPassword') || '';
+  let strengthScore = 0;
+  if (newPasswordValue.length > 0) strengthScore++;
+  if (newPasswordValue.length >= 6) strengthScore++;
+  if (newPasswordValue.length >= 8 && /\d/.test(newPasswordValue)) strengthScore++;
+  if (newPasswordValue.length >= 8 && /[!@#$%^&*(),.?":{}|<>]/.test(newPasswordValue)) strengthScore++;
+
+  const renderStrengthBars = () => {
+    const colors = ['#ef4444', '#f59e0b', '#eab308', '#22c55e'];
+    let color = 'rgba(255,255,255,0.05)';
+    if (strengthScore === 1) color = colors[0];
+    if (strengthScore === 2) color = colors[1];
+    if (strengthScore === 3) color = colors[2];
+    if (strengthScore >= 4) color = colors[3];
+    
+    return (
+      <div className="flex gap-1 mt-2">
+        {[1, 2, 3, 4].map((level) => (
+          <div 
+            key={level} 
+            className="h-1 flex-1 rounded-full transition-all duration-300"
+            style={{ backgroundColor: level <= strengthScore ? color : 'rgba(255,255,255,0.05)' }}
+          />
+        ))}
+      </div>
+    );
   }
 
-  const newPasswordValue = passwordForm.watch('newPassword')
+  const TabButton = ({ id, icon: Icon, label }: { id: string, icon: any, label: string }) => (
+    <button 
+      onClick={() => setActiveTab(id)}
+      className="focus:outline-none"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '8px 20px',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: 500,
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+        background: activeTab === id ? 'rgba(14,165,233,0.1)' : 'transparent',
+        color: activeTab === id ? '#0ea5e9' : '#7096b8',
+        border: activeTab === id ? '1px solid rgba(14,165,233,0.2)' : '1px solid rgba(255,255,255,0.06)',
+      }}
+      onMouseEnter={(e) => {
+        if (activeTab !== id) e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+      }}
+      onMouseLeave={(e) => {
+        if (activeTab !== id) e.currentTarget.style.background = 'transparent';
+      }}
+    >
+      <Icon size={16} /> {label}
+    </button>
+  );
 
   return (
     <PageTransition>
       <div className="max-w-4xl mx-auto p-6 md:p-8">
-        <header className="mb-[28px]">
+        <header className="mb-7">
           <div className="flex items-center gap-3">
             <SettingsIcon size={22} color="#0ea5e9" />
             <div>
@@ -162,42 +210,21 @@ export default function SettingsPage() {
           </div>
         </header>
 
-        <div className="flex gap-1 mb-[24px]">
-          <button 
-            onClick={() => setActiveTab('profile')}
-            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-[14px] font-medium cursor-pointer transition-all ${
-              activeTab === 'profile' 
-                ? 'bg-sky-500/10 text-[#0ea5e9] border border-sky-500/20' 
-                : 'bg-transparent text-[#7096b8] border border-white/5 hover:bg-white/5'
-            }`}
-          >
-            <User size={16} /> Profile
-          </button>
-          <button 
-            onClick={() => setActiveTab('security')}
-            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-[14px] font-medium cursor-pointer transition-all ${
-              activeTab === 'security' 
-                ? 'bg-sky-500/10 text-[#0ea5e9] border border-sky-500/20' 
-                : 'bg-transparent text-[#7096b8] border border-white/5 hover:bg-white/5'
-            }`}
-          >
-            <Lock size={16} /> Security
-          </button>
-          <button 
-            onClick={() => setActiveTab('notifications')}
-            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-[14px] font-medium cursor-pointer transition-all ${
-              activeTab === 'notifications' 
-                ? 'bg-sky-500/10 text-[#0ea5e9] border border-sky-500/20' 
-                : 'bg-transparent text-[#7096b8] border border-white/5 hover:bg-white/5'
-            }`}
-          >
-            <Bell size={16} /> Notifications
-          </button>
+        <div style={{
+          display: 'flex',
+          gap: '8px',
+          marginBottom: '24px',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          paddingBottom: '16px'
+        }}>
+          <TabButton id="profile" icon={User} label="Profile" />
+          <TabButton id="security" icon={Lock} label="Security" />
+          <TabButton id="notifications" icon={Bell} label="Notifications" />
         </div>
 
         {activeTab === 'profile' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={CARD_STYLE}>
-            <div className="flex flex-col items-center mb-[24px]">
+            <div className="flex flex-col items-center mb-8">
               <div className="w-[80px] h-[80px] rounded-full flex items-center justify-center text-white text-[28px] font-bold bg-gradient-to-br from-[#0ea5e9] to-[#2563eb] mb-4">
                 {getInitials(user?.name || 'U')}
               </div>
@@ -208,7 +235,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4 max-w-md mx-auto">
+            <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-5 max-w-md mx-auto">
               <div>
                 <label className="block text-[#7096b8] text-xs font-medium mb-1.5">Full Name</label>
                 <input 
@@ -235,14 +262,16 @@ export default function SettingsPage() {
                 <p className="text-[#4a6080] text-[11px] mt-1.5">Contact support to change email</p>
               </div>
 
-              <button 
-                type="submit" 
-                disabled={isSaving}
-                className="w-full mt-4 bg-gradient-to-br from-[#0ea5e9] to-[#2563eb] hover:opacity-90 text-white rounded-lg py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-opacity"
-              >
-                {isSaving ? <LoadingSpinner size="sm" /> : <Save size={16} />} 
-                Save Changes
-              </button>
+              <div className="flex justify-end pt-2">
+                <button 
+                  type="submit" 
+                  disabled={isSaving}
+                  className="bg-gradient-to-r from-[#0ea5e9] to-[#2563eb] hover:opacity-90 text-white rounded-lg px-6 py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-opacity"
+                >
+                  {isSaving ? <LoadingSpinner size="sm" /> : <Save size={16} />} 
+                  Save Changes
+                </button>
+              </div>
             </form>
           </motion.div>
         )}
@@ -283,11 +312,9 @@ export default function SettingsPage() {
                       {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
-                  {newPasswordValue.length > 0 && (
-                    <div className="mt-2 h-1 rounded-full w-full bg-white/5 overflow-hidden">
-                      <div className="h-full transition-all duration-300" style={{ width: `${Math.min((newPasswordValue.length / 8) * 100, 100)}%`, backgroundColor: getPasswordStrengthColor(newPasswordValue) }} />
-                    </div>
-                  )}
+                  
+                  {renderStrengthBars()}
+
                   {passwordForm.formState.errors.newPassword && <p className="text-red-500 text-xs mt-1">{passwordForm.formState.errors.newPassword.message as string}</p>}
                 </div>
 
@@ -306,20 +333,25 @@ export default function SettingsPage() {
                   {passwordForm.formState.errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{passwordForm.formState.errors.confirmPassword.message as string}</p>}
                 </div>
 
-                <div className="pt-2">
+                <div className="flex justify-end pt-2">
                   <button 
                     type="submit" 
                     disabled={isSaving}
-                    className="w-auto px-6 bg-gradient-to-br from-[#0ea5e9] to-[#2563eb] hover:opacity-90 text-white rounded-lg py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-opacity"
+                    className="bg-gradient-to-r from-[#0ea5e9] to-[#2563eb] hover:opacity-90 text-white rounded-lg px-6 py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-opacity"
                   >
-                    {isSaving ? <LoadingSpinner size="sm" /> : null} 
+                    {isSaving ? <LoadingSpinner size="sm" /> : <Save size={16} />} 
                     Update Password
                   </button>
                 </div>
               </form>
             </div>
 
-            <div className="bg-green-500/5 border border-green-500/15 rounded-xl p-4 flex gap-3">
+            <div style={{
+              background: 'rgba(34,197,94,0.05)',
+              border: '1px solid rgba(34,197,94,0.15)',
+              borderRadius: '12px',
+              padding: '16px',
+            }} className="flex gap-3">
               <Shield size={20} className="text-green-500 shrink-0" />
               <div>
                 <p className="text-[#e2f0ff] text-[13px] font-medium mb-1">Your account is secured with bcrypt hashing</p>
@@ -331,54 +363,55 @@ export default function SettingsPage() {
 
         {activeTab === 'notifications' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={CARD_STYLE}>
-            <div className="space-y-1 w-full max-w-xl">
-              <div className="flex justify-between items-center py-4 border-b border-white/5">
-                <div>
-                  <h3 className="text-[13px] font-semibold text-[#e2f0ff]">Email on Status Change</h3>
-                  <p className="text-[12px] text-[#7096b8] mt-0.5">Get notified when application status changes</p>
-                </div>
-                <div 
-                  onClick={() => handleToggle('emailOnStatusChange')}
-                  className="relative w-[44px] h-[24px] rounded-[12px] cursor-pointer transition-colors duration-200 flex items-center"
-                  style={{ backgroundColor: notifPrefs.emailOnStatusChange ? '#0ea5e9' : 'rgba(255,255,255,0.1)' }}
-                >
-                  <div 
-                    className={`absolute w-[20px] h-[20px] bg-white rounded-full transition-transform duration-200 ${notifPrefs.emailOnStatusChange ? 'translate-x-[22px]' : 'translate-x-[2px]'}`}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center py-4 border-b border-white/5">
-                <div>
-                  <h3 className="text-[13px] font-semibold text-[#e2f0ff]">Weekly Summary</h3>
-                  <p className="text-[12px] text-[#7096b8] mt-0.5">Receive weekly digest of your job search</p>
-                </div>
-                <div 
-                  onClick={() => handleToggle('weeklySummary')}
-                  className="relative w-[44px] h-[24px] rounded-[12px] cursor-pointer transition-colors duration-200 flex items-center"
-                  style={{ backgroundColor: notifPrefs.weeklySummary ? '#0ea5e9' : 'rgba(255,255,255,0.1)' }}
-                >
-                  <div 
-                    className={`absolute w-[20px] h-[20px] bg-white rounded-full transition-transform duration-200 ${notifPrefs.weeklySummary ? 'translate-x-[22px]' : 'translate-x-[2px]'}`}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center py-4">
-                <div>
-                  <h3 className="text-[13px] font-semibold text-[#e2f0ff]">Board Invites</h3>
-                  <p className="text-[12px] text-[#7096b8] mt-0.5">Get notified when invited to a board</p>
-                </div>
-                <div 
-                  onClick={() => handleToggle('boardInvite')}
-                  className="relative w-[44px] h-[24px] rounded-[12px] cursor-pointer transition-colors duration-200 flex items-center"
-                  style={{ backgroundColor: notifPrefs.boardInvite ? '#0ea5e9' : 'rgba(255,255,255,0.1)' }}
-                >
-                  <div 
-                    className={`absolute w-[20px] h-[20px] bg-white rounded-full transition-transform duration-200 ${notifPrefs.boardInvite ? 'translate-x-[22px]' : 'translate-x-[2px]'}`}
-                  />
-                </div>
-              </div>
+            <div className="space-y-0 w-full max-w-xl">
+              
+              {[
+                { key: 'emailOnStatusChange' as const, title: 'Email on Status Change', desc: 'Get notified when application status changes' },
+                { key: 'weeklySummary' as const, title: 'Weekly Summary', desc: 'Receive weekly digest of your job search' },
+                { key: 'boardInvite' as const, title: 'Board Invites', desc: 'Get notified when invited to a board' },
+              ].map((item, idx) => {
+                const isOn = notifPrefs[item.key];
+                return (
+                  <div key={item.key} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '16px 0',
+                    borderBottom: idx === 2 ? 'none' : '1px solid rgba(255,255,255,0.04)'
+                  }}>
+                    <div>
+                      <h3 className="text-[13px] font-semibold text-[#e2f0ff]">{item.title}</h3>
+                      <p className="text-[12px] text-[#7096b8] mt-0.5">{item.desc}</p>
+                    </div>
+                    <div 
+                      onClick={() => handleToggle(item.key)}
+                      style={{
+                        width: '44px',
+                        height: '24px',
+                        borderRadius: '12px',
+                        background: isOn ? '#0ea5e9' : 'rgba(255,255,255,0.1)',
+                        transition: 'background 0.2s ease',
+                        cursor: 'pointer',
+                        position: 'relative'
+                      }}
+                    >
+                      <div 
+                        style={{
+                          position: 'absolute',
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          background: 'white',
+                          top: '3px',
+                          left: isOn ? '23px' : '3px',
+                          transition: 'left 0.2s ease'
+                        }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+              
             </div>
           </motion.div>
         )}
