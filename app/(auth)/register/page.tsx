@@ -63,6 +63,40 @@ export default function RegisterPage() {
       overflow: 'hidden',
       padding: '40px 20px'
     }}>
+      {/* Back to Home Button */}
+      <button
+        onClick={() => router.push('/')}
+        style={{
+          position: 'absolute',
+          top: 24,
+          left: 32,
+          zIndex: 10,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          color: '#7096b8',
+          fontSize: 13,
+          fontWeight: 500,
+          cursor: 'pointer',
+          background: 'none',
+          border: 'none',
+          padding: '8px 12px',
+          borderRadius: 8,
+          transition: 'all 0.15s ease',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.color = '#e2f0ff';
+          e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.color = '#7096b8';
+          e.currentTarget.style.background = 'none';
+        }}
+      >
+        <ArrowLeft size={16} />
+        Back to home
+      </button>
+
       {/* Aurora Blobs */}
       <div style={{
         position: 'absolute', pointerEvents: 'none', zIndex: 0,
@@ -87,7 +121,7 @@ export default function RegisterPage() {
       }} />
 
       {/* Floating Cards */}
-      <motion.div 
+      <motion.div
         style={{
           display: width < 1024 ? 'none' : 'block',
           position: 'absolute', zIndex: 1, top: '15%', left: '2%',
@@ -107,7 +141,7 @@ export default function RegisterPage() {
         <div style={{ color: '#e2f0ff', fontSize: '11px', marginTop: '2px', whiteSpace: 'nowrap' }}>🎉 Congratulations!</div>
       </motion.div>
 
-      <motion.div 
+      <motion.div
         style={{
           display: width < 1024 ? 'none' : 'block',
           position: 'absolute', zIndex: 1, top: '42%', left: '1%',
@@ -126,7 +160,7 @@ export default function RegisterPage() {
         <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px', whiteSpace: 'nowrap' }}>Stripe · Tomorrow 2:00 PM</div>
       </motion.div>
 
-      <motion.div 
+      <motion.div
         style={{
           display: width < 1024 ? 'none' : 'block',
           position: 'absolute', zIndex: 1, top: '65%', left: '2%',
@@ -154,30 +188,8 @@ export default function RegisterPage() {
 
       {/* Center Column */}
       <div style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: '420px' }}>
-        
-        <button
-          onClick={() => router.push('/')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            color: '#7096b8',
-            fontSize: '13px',
-            cursor: 'pointer',
-            marginBottom: '20px',
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            transition: 'color 0.15s ease'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.color = '#e2f0ff'}
-          onMouseLeave={(e) => e.currentTarget.style.color = '#7096b8'}
-        >
-          <ArrowLeft size={16} />
-          Back to home
-        </button>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           style={{ display: 'flex', justifyContent: 'center' }}
@@ -194,7 +206,7 @@ export default function RegisterPage() {
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
@@ -208,7 +220,7 @@ export default function RegisterPage() {
           }}>HireTrack</span>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.15 }}
@@ -217,7 +229,7 @@ export default function RegisterPage() {
           Create your account
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -227,7 +239,7 @@ export default function RegisterPage() {
         </motion.div>
 
         {/* Form Card */}
-        <motion.div 
+        <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.25 }}
@@ -242,7 +254,7 @@ export default function RegisterPage() {
           }}
         >
           <form onSubmit={handleSubmit(onSubmit)}>
-            
+
             {/* Name Field */}
             <div style={{ marginBottom: '16px' }}>
               <label style={{ fontSize: '13px', fontWeight: 500, color: '#7096b8', display: 'block', marginBottom: '8px' }}>
@@ -250,8 +262,8 @@ export default function RegisterPage() {
               </label>
               <div style={{ position: 'relative' }}>
                 <User style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} size={16} color="#3d5a7a" />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="John Doe"
                   {...register('name')}
                   style={{
@@ -274,8 +286,8 @@ export default function RegisterPage() {
               </label>
               <div style={{ position: 'relative' }}>
                 <Mail style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} size={16} color="#3d5a7a" />
-                <input 
-                  type="email" 
+                <input
+                  type="email"
                   placeholder="you@example.com"
                   {...register('email')}
                   style={{
@@ -298,8 +310,8 @@ export default function RegisterPage() {
               </label>
               <div style={{ position: 'relative' }}>
                 <Lock style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} size={16} color="#3d5a7a" />
-                <input 
-                  type={showPassword ? 'text' : 'password'} 
+                <input
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   {...register('password')}
                   style={{
@@ -311,7 +323,7 @@ export default function RegisterPage() {
                   onFocus={(e) => { e.target.style.borderColor = '#0ea5e9'; e.target.style.boxShadow = '0 0 0 3px rgba(14,165,233,0.1)'; }}
                   onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
                 />
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowPassword((prev: boolean) => !prev)}
                   style={{
@@ -335,8 +347,8 @@ export default function RegisterPage() {
               </label>
               <div style={{ position: 'relative' }}>
                 <Lock style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} size={16} color="#3d5a7a" />
-                <input 
-                  type={showConfirm ? 'text' : 'password'} 
+                <input
+                  type={showConfirm ? 'text' : 'password'}
                   placeholder="••••••••"
                   {...register('confirmPassword')}
                   style={{
@@ -348,7 +360,7 @@ export default function RegisterPage() {
                   onFocus={(e) => { e.target.style.borderColor = '#0ea5e9'; e.target.style.boxShadow = '0 0 0 3px rgba(14,165,233,0.1)'; }}
                   onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
                 />
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowConfirm((prev: boolean) => !prev)}
                   style={{
@@ -390,7 +402,7 @@ export default function RegisterPage() {
             <div style={{ color: '#3d5a7a', fontSize: '12px', textAlign: 'center', marginTop: '12px' }}>
               By signing up you agree to our Terms of Service
             </div>
-            
+
             <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
               <span style={{ color: '#3d5a7a', fontSize: '13px' }}>or</span>
@@ -403,7 +415,7 @@ export default function RegisterPage() {
                 Sign in →
               </a>
             </div>
-            
+
           </form>
         </motion.div>
 

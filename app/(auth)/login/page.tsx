@@ -56,6 +56,40 @@ export default function LoginPage() {
       overflow: 'hidden',
       padding: '40px 20px'
     }}>
+      {/* Back to Home Button */}
+      <button
+        onClick={() => router.push('/')}
+        style={{
+          position: 'absolute',
+          top: 24,
+          left: 32,
+          zIndex: 10,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          color: '#7096b8',
+          fontSize: 13,
+          fontWeight: 500,
+          cursor: 'pointer',
+          background: 'none',
+          border: 'none',
+          padding: '8px 12px',
+          borderRadius: 8,
+          transition: 'all 0.15s ease',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.color = '#e2f0ff';
+          e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.color = '#7096b8';
+          e.currentTarget.style.background = 'none';
+        }}
+      >
+        <ArrowLeft size={16} />
+        Back to home
+      </button>
+
       {/* Aurora Blobs */}
       <div style={{
         position: 'absolute', pointerEvents: 'none', zIndex: 0,
@@ -80,7 +114,7 @@ export default function LoginPage() {
       }} />
 
       {/* Floating Cards */}
-      <motion.div 
+      <motion.div
         style={{
           display: width < 1024 ? 'none' : 'block',
           position: 'absolute', zIndex: 1, top: '15%', left: '2%',
@@ -100,7 +134,7 @@ export default function LoginPage() {
         <div style={{ color: '#e2f0ff', fontSize: '11px', marginTop: '2px', whiteSpace: 'nowrap' }}>🎉 Congratulations!</div>
       </motion.div>
 
-      <motion.div 
+      <motion.div
         style={{
           display: width < 1024 ? 'none' : 'block',
           position: 'absolute', zIndex: 1, top: '42%', left: '1%',
@@ -119,7 +153,7 @@ export default function LoginPage() {
         <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px', whiteSpace: 'nowrap' }}>Stripe · Tomorrow 2:00 PM</div>
       </motion.div>
 
-      <motion.div 
+      <motion.div
         style={{
           display: width < 1024 ? 'none' : 'block',
           position: 'absolute', zIndex: 1, top: '65%', left: '2%',
@@ -147,30 +181,8 @@ export default function LoginPage() {
 
       {/* Center Column */}
       <div style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: '420px' }}>
-        
-        <button
-          onClick={() => router.push('/')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            color: '#7096b8',
-            fontSize: '13px',
-            cursor: 'pointer',
-            marginBottom: '20px',
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            transition: 'color 0.15s ease'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.color = '#e2f0ff'}
-          onMouseLeave={(e) => e.currentTarget.style.color = '#7096b8'}
-        >
-          <ArrowLeft size={16} />
-          Back to home
-        </button>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           style={{ display: 'flex', justifyContent: 'center' }}
@@ -187,7 +199,7 @@ export default function LoginPage() {
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
@@ -201,7 +213,7 @@ export default function LoginPage() {
           }}>HireTrack</span>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.15 }}
@@ -210,7 +222,7 @@ export default function LoginPage() {
           Welcome back
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -220,7 +232,7 @@ export default function LoginPage() {
         </motion.div>
 
         {/* Form Card */}
-        <motion.div 
+        <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.25 }}
@@ -235,7 +247,7 @@ export default function LoginPage() {
           }}
         >
           <form onSubmit={handleSubmit(onSubmit)}>
-            
+
             {/* Email Field */}
             <div style={{ marginBottom: '16px' }}>
               <label style={{ fontSize: '13px', fontWeight: 500, color: '#7096b8', display: 'block', marginBottom: '8px' }}>
@@ -243,8 +255,8 @@ export default function LoginPage() {
               </label>
               <div style={{ position: 'relative' }}>
                 <Mail style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} size={16} color="#3d5a7a" />
-                <input 
-                  type="email" 
+                <input
+                  type="email"
                   placeholder="you@example.com"
                   {...register('email')}
                   style={{
@@ -267,8 +279,8 @@ export default function LoginPage() {
               </label>
               <div style={{ position: 'relative' }}>
                 <Lock style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} size={16} color="#3d5a7a" />
-                <input 
-                  type={showPassword ? 'text' : 'password'} 
+                <input
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   {...register('password')}
                   style={{
@@ -280,7 +292,7 @@ export default function LoginPage() {
                   onFocus={(e) => { e.target.style.borderColor = '#0ea5e9'; e.target.style.boxShadow = '0 0 0 3px rgba(14,165,233,0.1)'; }}
                   onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
                 />
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowPassword((prev: boolean) => !prev)}
                   style={{
@@ -332,7 +344,7 @@ export default function LoginPage() {
                 "Sign In"
               )}
             </button>
-            
+
             <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
               <span style={{ color: '#3d5a7a', fontSize: '13px' }}>or</span>
@@ -345,7 +357,7 @@ export default function LoginPage() {
                 Create account →
               </a>
             </div>
-            
+
           </form>
         </motion.div>
 
