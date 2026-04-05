@@ -8,10 +8,8 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-export const sendPasswordResetEmail = async (email: string, name: string, resetToken: string) => {
+export const sendPasswordResetEmail = async (email: string, name: string, resetUrl: string) => {
   try {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const resetUrl = `${appUrl}/reset-password?token=${resetToken}`;
     
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -38,7 +36,8 @@ export const sendPasswordResetEmail = async (email: string, name: string, resetT
 
 export const sendStatusChangeEmail = async (email: string, name: string, company: string, role: string, newStatus: string) => {
   try {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://hiretrack-brown.vercel.app';
+    const boardLink = `${baseUrl}/dashboard/board`;
     
     const STAGE_COLORS: Record<string, string> = {
       Applied: '#38bdf8',
@@ -66,7 +65,7 @@ export const sendStatusChangeEmail = async (email: string, name: string, company
           </div>
           
           <div style="margin-bottom: 32px;">
-            <a href="${appUrl}/dashboard" style="display: inline-block; background: linear-gradient(135deg, #0ea5e9, #2563eb); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">Log in to HireTrack to view details</a>
+            <a href="${boardLink}" style="display: inline-block; background: linear-gradient(135deg, #0ea5e9, #2563eb); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">Log in to HireTrack to view details</a>
           </div>
           
           <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 20px; text-align: center;">
@@ -82,7 +81,8 @@ export const sendStatusChangeEmail = async (email: string, name: string, company
 
 export const sendWelcomeEmail = async (email: string, name: string) => {
   try {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://hiretrack-brown.vercel.app';
+    const dashboardLink = `${baseUrl}/dashboard`;
     
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -97,7 +97,7 @@ export const sendWelcomeEmail = async (email: string, name: string) => {
           <p style="color: #7096b8; line-height: 1.6; font-size: 15px; margin-bottom: 28px;">
             Thanks for joining HireTrack. It's time to organize your job search, optimize your resume with our AI matcher, and land your next opportunity.
           </p>
-          <a href="${appUrl}/login" style="display: inline-block; background: linear-gradient(135deg, #0ea5e9, #2563eb); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600;">Start tracking your job search</a>
+          <a href="${dashboardLink}" style="display: inline-block; background: linear-gradient(135deg, #0ea5e9, #2563eb); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600;">Go to Dashboard →</a>
         </div>
       `
     });

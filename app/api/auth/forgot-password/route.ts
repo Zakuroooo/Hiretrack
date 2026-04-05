@@ -30,7 +30,10 @@ export async function POST(request: NextRequest) {
     user.resetPasswordExpires = resetTokenExpiry;
     await user.save();
     
-    await sendPasswordResetEmail(user.email, user.name, resetToken);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://hiretrack-brown.vercel.app';
+    const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+    
+    await sendPasswordResetEmail(user.email, user.name, resetUrl);
     
     return successResponse({ message: "If that email exists, a reset link was sent" });
   } catch (error) {
