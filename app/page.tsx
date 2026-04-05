@@ -14,6 +14,7 @@ import {
 import AnimatedCounter from '@/components/ui/AnimatedCounter';
 import { useAuthStore } from '@/lib/store/authStore';
 import { toast } from 'sonner';
+import { useWindowSize } from '@/hooks/useWindowSize';
 
 /* ─── Shared animation variant ─────────────────────────────────── */
 const fadeUp = {
@@ -36,6 +37,8 @@ const pulseStyle = `
 export default function LandingPage() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { width } = useWindowSize();
+  const isMobile = width < 768;
 
   /* Redirect logged-in users straight to dashboard */
   useEffect(() => {
@@ -67,7 +70,7 @@ export default function LandingPage() {
           WebkitBackdropFilter: 'blur(20px)',
           borderBottom: '1px solid rgba(255,255,255,0.06)',
           height: '64px',
-          padding: '0 48px',
+          padding: isMobile ? '0 20px' : '0 48px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -75,11 +78,11 @@ export default function LandingPage() {
       >
         {/* Brand */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'default' }}>
-          <Zap size={22} color="#0ea5e9" />
+          <Zap size={isMobile ? 18 : 22} color="#0ea5e9" />
           <span
             style={{
               fontWeight: 700,
-              fontSize: '20px',
+              fontSize: isMobile ? '16px' : '20px',
               background: 'linear-gradient(135deg,#e2f0ff,#38bdf8,#2563eb)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -91,28 +94,30 @@ export default function LandingPage() {
 
         {/* Nav actions */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <a
-            href="/login"
-            style={{
-              color: '#7096b8',
-              fontSize: '14px',
-              textDecoration: 'none',
-              marginRight: '16px',
-              transition: 'color 0.2s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#e2f0ff')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#7096b8')}
-          >
-            Sign In
-          </a>
+          {!isMobile && (
+            <a
+              href="/login"
+              style={{
+                color: '#7096b8',
+                fontSize: '14px',
+                textDecoration: 'none',
+                marginRight: '16px',
+                transition: 'color 0.2s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#e2f0ff')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#7096b8')}
+            >
+              Sign In
+            </a>
+          )}
           <button
             onClick={() => router.push('/register')}
             style={{
               background: 'linear-gradient(135deg,#0ea5e9,#2563eb)',
-              padding: '8px 20px',
+              padding: isMobile ? '6px 14px' : '8px 20px',
               borderRadius: '8px',
               color: 'white',
-              fontSize: '14px',
+              fontSize: isMobile ? '13px' : '14px',
               fontWeight: 600,
               border: 'none',
               cursor: 'pointer',
@@ -259,8 +264,12 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
             style={{
-              display: 'flex', gap: '16px',
-              justifyContent: 'center', flexWrap: 'wrap',
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'center' : undefined,
+              gap: '16px',
+              justifyContent: 'center',
+              flexWrap: 'wrap',
             }}
           >
             <button
@@ -272,6 +281,8 @@ export default function LandingPage() {
                 border: 'none', cursor: 'pointer',
                 boxShadow: '0 0 30px rgba(14,165,233,0.2)',
                 transition: 'all 0.2s ease',
+                width: isMobile ? '100%' : undefined,
+                maxWidth: isMobile ? '320px' : undefined,
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.transform = 'translateY(-2px)';
@@ -292,6 +303,8 @@ export default function LandingPage() {
                 padding: '14px 32px', borderRadius: '12px',
                 fontSize: '16px', color: '#7096b8', cursor: 'pointer',
                 transition: 'all 0.2s ease',
+                width: isMobile ? '100%' : undefined,
+                maxWidth: isMobile ? '320px' : undefined,
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
@@ -313,7 +326,8 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.4 }}
             style={{
               marginTop: '32px',
-              display: 'flex', alignItems: 'center',
+              display: width < 480 ? 'none' : 'flex',
+              alignItems: 'center',
               justifyContent: 'center', gap: '0',
             }}
           >
@@ -545,16 +559,16 @@ export default function LandingPage() {
         {/* Bento grid */}
         <div
           style={{
-            maxWidth: '1100px', margin: '0 auto', padding: '0 24px',
+            maxWidth: '1100px', margin: '0 auto', padding: isMobile ? '0 16px' : '0 24px',
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
+            gridTemplateColumns: isMobile ? '1fr' : width < 1024 ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
             gap: '16px',
           }}
         >
           {/* Card 1 — wide */}
           <FeatureCard
             delay={0}
-            style={{ gridColumn: 'span 2', background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.12)' }}
+            style={{ gridColumn: isMobile ? 'span 1' : 'span 2', background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.12)', padding: isMobile ? '20px' : '28px' }}
           >
             <Kanban size={32} color="#0ea5e9" />
             <h3 style={{ color: '#e2f0ff', fontSize: '20px', fontWeight: 600, marginTop: '16px' }}>
@@ -612,7 +626,7 @@ export default function LandingPage() {
           {/* Card 5 — Security, wide */}
           <FeatureCard
             delay={0.4}
-            style={{ gridColumn: 'span 2', background: 'rgba(13,20,33,0.9)' }}
+            style={{ gridColumn: isMobile ? 'span 1' : 'span 2', background: 'rgba(13,20,33,0.9)', padding: isMobile ? '20px' : '28px' }}
           >
             <Shield size={28} color="#0ea5e9" />
             <h3 style={{ color: '#e2f0ff', fontSize: '18px', fontWeight: 600, marginTop: '16px' }}>
@@ -670,11 +684,12 @@ export default function LandingPage() {
           whileInView="show"
           viewport={{ once: true, margin: '-80px' }}
           style={{
-            display: 'flex', alignItems: 'flex-start',
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'flex-start' : 'flex-start',
             justifyContent: 'center',
             maxWidth: '900px', margin: '0 auto',
-            padding: '0 24px', gap: '0',
-            flexWrap: 'wrap',
+            padding: isMobile ? '0 20px' : '0 24px', gap: isMobile ? '32px' : '0',
           }}
         >
           {[
@@ -698,12 +713,16 @@ export default function LandingPage() {
               key={step.num}
               style={{
                 display: 'flex', alignItems: 'flex-start',
-                flex: '1', minWidth: '220px',
+                flex: isMobile ? 'unset' : '1',
+                minWidth: isMobile ? 'unset' : '220px',
+                width: isMobile ? '100%' : undefined,
               }}
             >
               <div
                 style={{
-                  textAlign: 'center', padding: '0 32px', flex: 1,
+                  textAlign: isMobile ? 'left' : 'center',
+                  padding: isMobile ? '0' : '0 32px',
+                  flex: 1,
                 }}
               >
                 <div
@@ -725,7 +744,7 @@ export default function LandingPage() {
                   {step.desc}
                 </div>
               </div>
-              {i < 2 && (
+              {i < 2 && !isMobile && (
                 <div
                   style={{
                     fontSize: '28px', color: '#1e3a5f',
@@ -757,8 +776,13 @@ export default function LandingPage() {
           whileInView="show"
           viewport={{ once: true, margin: '-80px' }}
           style={{
-            display: 'flex', justifyContent: 'center',
-            gap: '80px', flexWrap: 'wrap',
+            display: 'grid',
+            gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)',
+            gap: isMobile ? '32px 24px' : '0',
+            justifyItems: 'center',
+            maxWidth: '900px',
+            margin: '0 auto',
+            padding: isMobile ? '0 24px' : '0',
           }}
         >
           {[
@@ -770,7 +794,7 @@ export default function LandingPage() {
             <div key={stat.label} style={{ textAlign: 'center' }}>
               <div
                 style={{
-                  fontSize: '52px', fontWeight: 800,
+                  fontSize: isMobile ? '36px' : '52px', fontWeight: 800,
                   background: 'linear-gradient(135deg,#e2f0ff 0%,#38bdf8 40%,#2563eb 100%)',
                   WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                   lineHeight: 1.1,
@@ -857,10 +881,12 @@ export default function LandingPage() {
           style={{
             marginTop: '80px',
             borderTop: '1px solid rgba(255,255,255,0.06)',
-            paddingTop: '40px', paddingBottom: '40px',
-            display: 'flex', justifyContent: 'space-between',
-            alignItems: 'center', flexWrap: 'wrap', gap: '16px',
-            padding: '40px 48px',
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            justifyContent: 'space-between',
+            alignItems: isMobile ? 'flex-start' : 'center',
+            flexWrap: 'wrap', gap: '16px',
+            padding: isMobile ? '32px 20px' : '40px 48px',
           }}
         >
           <div>
@@ -872,7 +898,7 @@ export default function LandingPage() {
               © 2026 HireTrack. All rights reserved.
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '24px' }}>
+          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
             <span
               onClick={() => toast.info('Privacy policy coming soon')}
               style={{ color: '#3d5a7a', fontSize: '13px', cursor: 'pointer', transition: 'color 0.2s' }}

@@ -19,6 +19,7 @@ import {
 import { toast } from 'sonner';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import PageTransition from '@/components/ui/PageTransition';
+import { useWindowSize } from '@/hooks/useWindowSize';
 
 // ── Types ──
 interface AnalysisResult {
@@ -82,6 +83,8 @@ export default function AIMatchPage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const { width } = useWindowSize();
+  const isMobile = width < 768;
   const [isExtractingPdf, setIsExtractingPdf] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState('');
   const resumePdfRef = useRef<HTMLInputElement>(null);
@@ -311,7 +314,7 @@ export default function AIMatchPage() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+            gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)',
             gap: 24,
             alignItems: 'start',
           }}

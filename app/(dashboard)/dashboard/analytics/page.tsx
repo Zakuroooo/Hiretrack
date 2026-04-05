@@ -7,6 +7,7 @@ import { PieChart, Pie, Cell, LineChart, Line, XAxis, CartesianGrid, Tooltip as 
 import AnimatedCounter from '@/components/ui/AnimatedCounter'
 import PageTransition from '@/components/ui/PageTransition'
 import Link from 'next/link'
+import { useWindowSize } from '@/hooks/useWindowSize'
 
 const STAGE_COLORS: Record<string, string> = {
   Applied: '#38bdf8',
@@ -29,6 +30,8 @@ export default function AnalyticsPage() {
     queryFn: () => axios.get('/analytics').then(r => r.data.data),
     staleTime: 5 * 60 * 1000
   })
+  const { width } = useWindowSize()
+  const isMobile = width < 768
 
   return (
     <PageTransition>
@@ -46,7 +49,7 @@ export default function AnalyticsPage() {
         </div>
 
         {isLoading && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: 16 }}>
             {[...Array(6)].map((_, i) => (
               <div key={i} className="shimmer-loading" style={{ height: 120, borderRadius: 16 }} />
             ))}
@@ -74,7 +77,7 @@ export default function AnalyticsPage() {
         {!isLoading && data && data.total > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: 16 }}>
               <div style={cardStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                   <span style={{ fontSize: 12, color: '#7096b8' }}>Success Rate</span>
@@ -115,12 +118,12 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
               <div style={cardStyle}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: '#e2f0ff', marginBottom: 16 }}>
                   Application Status
                 </div>
-                <div style={{ height: 200 }}>
+                <div style={{ height: isMobile ? 180 : 200 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -162,7 +165,7 @@ export default function AnalyticsPage() {
                 <div style={{ fontSize: 15, fontWeight: 600, color: '#e2f0ff', marginBottom: 16 }}>
                   Monthly Trend
                 </div>
-                <div style={{ height: 220 }}>
+                <div style={{ height: isMobile ? 180 : 220 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data.monthlyTrend}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
@@ -177,7 +180,7 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 3fr', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 3fr', gap: 16 }}>
               <div style={cardStyle}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: '#e2f0ff', marginBottom: 16 }}>
                   Most Applied Companies

@@ -22,6 +22,7 @@ import {
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import PageTransition from '@/components/ui/PageTransition'
 import { getInitials } from '@/lib/utils'
+import { useWindowSize } from '@/hooks/useWindowSize'
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 const profileSchema = z.object({
@@ -54,6 +55,8 @@ function getPasswordStrength(password: string): number {
 export default function SettingsPage() {
   const { user } = useAuth()
   const { setAuth, accessToken } = useAuthStore()
+  const { width } = useWindowSize()
+  const isMobile = width < 768
 
   // ── Tab state ──
   const [activeTab, setActiveTab] = useState('profile')
@@ -171,7 +174,7 @@ export default function SettingsPage() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <PageTransition>
-      <div style={{ maxWidth: 720, margin: '0 auto' }}>
+      <div style={{ maxWidth: isMobile ? '100%' : 720, margin: '0 auto' }}>
 
         {/* PAGE HEADER */}
         <div style={{ marginBottom: 28 }}>
@@ -206,9 +209,9 @@ export default function SettingsPage() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 8,
-                padding: '8px 20px',
+                padding: isMobile ? '6px 12px' : '8px 20px',
                 borderRadius: 8,
-                fontSize: 14,
+                fontSize: isMobile ? 13 : 14,
                 fontWeight: 500,
                 cursor: 'pointer',
                 border: activeTab === id

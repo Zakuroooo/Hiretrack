@@ -109,7 +109,7 @@ export default function DashboardLayout({
               flex: 1,
               overflowY: 'auto',
               background: '#080c14',
-              padding: '24px',
+              padding: isMobile ? '16px' : '24px',
             }}
           >
             <PageTransition>{children}</PageTransition>

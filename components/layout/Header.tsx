@@ -9,6 +9,7 @@ import { getInitials } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import NotificationBell from './NotificationBell';
+import { useWindowSize } from '@/hooks/useWindowSize';
 
 interface HeaderProps {
   sidebarCollapsed: boolean;
@@ -34,6 +35,9 @@ export default function Header({
   const { user, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { width } = useWindowSize();
+  const isMobile = width < 768;
+  const isSmall = width < 480;
 
   const currentPageTitle = PAGE_TITLES[pathname] || 'Dashboard';
   const userInitials = getInitials(user?.name || 'User');
@@ -105,7 +109,7 @@ export default function Header({
       <div>
         <div
           style={{
-            fontSize: '18px',
+            fontSize: isMobile ? '15px' : '18px',
             fontWeight: 600,
             color: '#e2f0ff',
             lineHeight: 1.3,
@@ -113,15 +117,17 @@ export default function Header({
         >
           {currentPageTitle}
         </div>
-        <div
-          style={{
-            fontSize: '12px',
-            color: '#3d5a7a',
-            lineHeight: 1.3,
-          }}
-        >
-          HireTrack / {currentPageTitle}
-        </div>
+        {!isMobile && (
+          <div
+            style={{
+              fontSize: '12px',
+              color: '#3d5a7a',
+              lineHeight: 1.3,
+            }}
+          >
+            HireTrack / {currentPageTitle}
+          </div>
+        )}
       </div>
 
       {/* Right side */}
@@ -138,7 +144,7 @@ export default function Header({
           {searchOpen && (
             <motion.div
               initial={{ opacity: 0, width: 0 }}
-              animate={{ opacity: 1, width: '240px' }}
+              animate={{ opacity: 1, width: isMobile ? '160px' : '240px' }}
               exit={{ opacity: 0, width: 0 }}
               style={{ overflow: 'hidden' }}
             >
@@ -165,7 +171,7 @@ export default function Header({
                   padding: '6px 14px',
                   color: '#e2f0ff',
                   fontSize: '14px',
-                  width: '240px',
+                  width: isMobile ? '160px' : '240px',
                   outline: 'none',
                 }}
               />
@@ -173,45 +179,47 @@ export default function Header({
           )}
         </AnimatePresence>
 
-        {/* Search button toggle */}
-        <button
-          onClick={() => {
-            if (searchOpen && searchQuery.trim()) {
-              router.push(`/dashboard/board?search=${encodeURIComponent(searchQuery)}`);
-              setSearchOpen(false);
-            } else {
-              setSearchOpen(!searchOpen);
-            }
-          }}
-          style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '8px',
-            background: searchOpen ? 'rgba(14,165,233,0.1)' : 'rgba(255,255,255,0.04)',
-            border: searchOpen ? '1px solid rgba(14,165,233,0.3)' : '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            color: searchOpen ? '#0ea5e9' : '#4a6080',
-            transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={(e) => {
-            if (!searchOpen) {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-              e.currentTarget.style.color = '#7096b8';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!searchOpen) {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-              e.currentTarget.style.color = '#4a6080';
-            }
-          }}
-          title={searchOpen ? "Close Search" : "Search"}
-        >
-          {searchOpen ? <X size={16} /> : <Search size={16} />}
-        </button>
+        {/* Search button toggle — hidden on very small screens */}
+        {!isSmall && (
+          <button
+            onClick={() => {
+              if (searchOpen && searchQuery.trim()) {
+                router.push(`/dashboard/board?search=${encodeURIComponent(searchQuery)}`);
+                setSearchOpen(false);
+              } else {
+                setSearchOpen(!searchOpen);
+              }
+            }}
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '8px',
+              background: searchOpen ? 'rgba(14,165,233,0.1)' : 'rgba(255,255,255,0.04)',
+              border: searchOpen ? '1px solid rgba(14,165,233,0.3)' : '1px solid rgba(255,255,255,0.06)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: searchOpen ? '#0ea5e9' : '#4a6080',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              if (!searchOpen) {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                e.currentTarget.style.color = '#7096b8';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!searchOpen) {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                e.currentTarget.style.color = '#4a6080';
+              }
+            }}
+            title={searchOpen ? "Close Search" : "Search"}
+          >
+            {searchOpen ? <X size={16} /> : <Search size={16} />}
+          </button>
+        )}
 
         {/* Notification bell */}
         <NotificationBell />
