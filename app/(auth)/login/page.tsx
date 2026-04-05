@@ -6,10 +6,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Zap, Mail, Lock, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Zap, Mail, Lock, Eye, EyeOff, Sparkles, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { useWindowSize } from '@/hooks/useWindowSize';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email'),
@@ -23,6 +24,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
+  const { width } = useWindowSize();
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema)
@@ -80,9 +82,10 @@ export default function LoginPage() {
       {/* Floating Cards */}
       <motion.div 
         style={{
-          position: 'absolute', zIndex: 1, top: '20%', left: '4%',
+          display: width < 1024 ? 'none' : 'block',
+          position: 'absolute', zIndex: 1, top: '15%', left: '2%',
           background: 'rgba(13,20,33,0.95)', border: '1px solid rgba(34,197,94,0.3)',
-          borderRadius: '14px', padding: '16px 20px', backdropFilter: 'blur(20px)',
+          borderRadius: '14px', padding: width < 1280 ? '12px 14px' : '16px 20px', backdropFilter: 'blur(20px)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           width: 'fit-content', minWidth: '180px', maxWidth: '220px'
         }}
@@ -99,9 +102,10 @@ export default function LoginPage() {
 
       <motion.div 
         style={{
-          position: 'absolute', zIndex: 1, top: '48%', left: '2%',
+          display: width < 1024 ? 'none' : 'block',
+          position: 'absolute', zIndex: 1, top: '42%', left: '1%',
           background: 'rgba(13,20,33,0.95)', border: '1px solid rgba(56,189,248,0.3)',
-          borderRadius: '14px', padding: '14px 18px', backdropFilter: 'blur(20px)',
+          borderRadius: '14px', padding: width < 1280 ? '12px 14px' : '14px 18px', backdropFilter: 'blur(20px)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           width: 'fit-content', minWidth: '180px', maxWidth: '220px'
         }}
@@ -117,9 +121,10 @@ export default function LoginPage() {
 
       <motion.div 
         style={{
-          position: 'absolute', zIndex: 1, top: '72%', left: '4%',
+          display: width < 1024 ? 'none' : 'block',
+          position: 'absolute', zIndex: 1, top: '65%', left: '2%',
           background: 'rgba(13,20,33,0.95)', border: '1px solid rgba(14,165,233,0.3)',
-          borderRadius: '14px', padding: '16px 20px', backdropFilter: 'blur(20px)',
+          borderRadius: '14px', padding: width < 1280 ? '12px 14px' : '16px 20px', backdropFilter: 'blur(20px)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           width: 'fit-content', minWidth: '180px', maxWidth: '220px'
         }}
@@ -143,6 +148,28 @@ export default function LoginPage() {
       {/* Center Column */}
       <div style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: '420px' }}>
         
+        <button
+          onClick={() => router.push('/')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            color: '#7096b8',
+            fontSize: '13px',
+            cursor: 'pointer',
+            marginBottom: '20px',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            transition: 'color 0.15s ease'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = '#e2f0ff'}
+          onMouseLeave={(e) => e.currentTarget.style.color = '#7096b8'}
+        >
+          <ArrowLeft size={16} />
+          Back to home
+        </button>
+
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
