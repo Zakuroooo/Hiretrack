@@ -88,6 +88,7 @@ export default function ApplicationCard({
         padding: '14px 16px',
         marginBottom: 8,
         position: 'relative',
+        touchAction: 'none',
         transition: 'border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease',
       }}
       {...attributes}

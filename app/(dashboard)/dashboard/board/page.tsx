@@ -9,6 +9,8 @@ import {
   closestCorners,
   PointerSensor,
   KeyboardSensor,
+  TouchSensor,
+  MouseSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -90,6 +92,7 @@ function DroppableColumn({
         padding: 4,
         transition: 'background 0.2s ease',
         background: isOver ? 'rgba(14,165,233,0.06)' : 'transparent',
+        touchAction: 'none',
       }}
     >
       {children}
@@ -176,12 +179,22 @@ function BoardPageInner() {
   const totalApps = applications.length;
 
   // DnD sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor)
-  );
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: {
+      distance: 8,
+    },
+  });
+
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 200,
+      tolerance: 8,
+    },
+  });
+
+  const keyboardSensor = useSensor(KeyboardSensor);
+
+  const sensors = useSensors(mouseSensor, touchSensor, keyboardSensor);
 
   // Find which column an item is in
   const findColumn = useCallback(
@@ -601,6 +614,7 @@ function BoardPageInner() {
                 minHeight: 'calc(100vh - 280px)',
                 position: 'relative',
                 zIndex: 1,
+                touchAction: 'none',
               }}
             >
               {STAGES.map((stage) => {
